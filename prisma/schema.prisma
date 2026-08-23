@@ -1,0 +1,393 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER @map("customer")
+  ADMIN    @map("admin")
+  DELIVERY @map("delivery")
+
+  @@map("user_role")
+}
+
+enum AddressType {
+  HOME  @map("home")
+  WORK  @map("work")
+  OTHER @map("other")
+
+  @@map("address_type")
+}
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+
+  email String  @unique @db.VarChar(255)
+  phone String? @unique @db.VarChar(20)
+
+  passwordHash String @map("password_hash") @db.VarChar(255)
+
+  firstName String? @map("first_name") @db.VarChar(100)
+  lastName  String? @map("last_name") @db.VarChar(100)
+  avatarUrl String? @map("avatar_url")
+
+  isVerified Boolean @default(false) @map("is_verified")
+  isActive   Boolean @default(true) @map("is_active")
+
+  role UserRole @default(CUSTOMER)
+
+  lastLogin DateTime? @map("last_login") @db.Timestamp(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  addresses             UserAddress[]
+  sessions              UserSession[]
+  carts                 Cart[]
+  orders                Order[]
+  createdOrderHistories OrderStatusHistory[] @relation("OrderStatusCreatedBy")
+
+  @@map("users")
+}
+
+model UserAddress {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @map("user_id") @db.Uuid
+
+  addressLine1 String  @map("address_line1")
+  addressLine2 String? @map("address_line2")
+
+  city       String  @db.VarChar(100)
+  state      String? @db.VarChar(100)
+  country    String  @default("Qatar") @db.VarChar(100)
+  postalCode String? @map("postal_code") @db.VarChar(20)
+
+  latitude  Decimal? @db.Decimal(10, 8)
+  longitude Decimal? @db.Decimal(11, 8)
+
+  isDefault   Boolean     @default(false) @map("is_default")
+  addressType AddressType @default(HOME) @map("address_type")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_addresses")
+}
+
+model UserSession {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @map("user_id") @db.Uuid
+
+  token      String
+  deviceInfo String? @map("device_info")
+  ipAddress  String? @map("ip_address") @db.VarChar(45)
+
+  expiresAt DateTime @map("expires_at") @db.Timestamp(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_sessions")
+}
+
+model Category {
+  id String @id @default(uuid()) @db.Uuid
+
+  name   String @db.VarChar(100)
+  nameAr String @map("name_ar") @db.VarChar(100)
+  slug   String @unique @db.VarChar(100)
+
+  description   String? @db.Text
+  descriptionAr String? @map("description_ar") @db.Text
+
+  icon     String? @db.VarChar(50)
+  imageUrl String? @map("image_url")
+
+  parentId String? @map("parent_id") @db.Uuid
+
+  isActive  Boolean @default(true) @map("is_active")
+  sortOrder Int     @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+
+  products Product[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Product {
+  id String @id @default(uuid()) @db.Uuid
+
+  categoryId String? @map("category_id") @db.Uuid
+
+  name   String @db.VarChar(255)
+  nameAr String @map("name_ar") @db.VarChar(255)
+
+  description   String?
+  descriptionAr String? @map("description_ar")
+
+  slug String @unique @db.VarChar(255)
+
+  unitLabel String? @map("unit_label") @db.VarChar(50)
+
+  price        Decimal  @db.Decimal(10, 2)
+  comparePrice Decimal? @map("compare_price") @db.Decimal(10, 2)
+  costPrice    Decimal? @map("cost_price") @db.Decimal(10, 2)
+
+  sku     String? @unique @db.VarChar(100)
+  barcode String? @db.VarChar(100)
+
+  imageUrl      String?  @map("image_url")
+  galleryImages String[] @map("gallery_images")
+
+  isFresh Boolean @default(true) @map("is_fresh")
+  inStock Boolean @default(true) @map("in_stock")
+
+  stockQuantity     Int @default(0) @map("stock_quantity")
+  lowStockThreshold Int @default(10) @map("low_stock_threshold")
+
+  brand String? @db.VarChar(100)
+
+  weight     Decimal? @db.Decimal(10, 2)
+  weightUnit String?  @map("weight_unit") @db.VarChar(20)
+
+  isFeatured Boolean @default(false) @map("is_featured")
+  isActive   Boolean @default(true) @map("is_active")
+
+  viewCount Int @default(0) @map("view_count")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  category   Category?        @relation(fields: [categoryId], references: [id])
+  variants   ProductVariant[]
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id String @id @default(uuid()) @db.Uuid
+
+  productId String @map("product_id") @db.Uuid
+
+  name  String? @db.VarChar(100)
+  price Decimal @db.Decimal(10, 2)
+  sku   String? @db.VarChar(100)
+
+  stockQuantity Int @default(0) @map("stock_quantity")
+
+  attributes Json?
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  cartItems CartItem[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model Cart {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId    String? @map("user_id") @db.Uuid
+  sessionId String? @map("session_id") @db.VarChar(255)
+
+  expiresAt DateTime? @map("expires_at") @db.Timestamp(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@unique([userId, sessionId])
+  @@index([userId])
+  @@map("carts")
+}
+
+model CartItem {
+  id String @id @default(uuid()) @db.Uuid
+
+  cartId    String  @map("cart_id") @db.Uuid
+  productId String? @map("product_id") @db.Uuid
+  variantId String? @map("variant_id") @db.Uuid
+
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+
+  addedAt   DateTime @default(now()) @map("added_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product?        @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([cartId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("cart_items")
+}
+
+enum OrderStatus {
+  PENDING    @map("pending")
+  CONFIRMED  @map("confirmed")
+  PREPARING  @map("preparing")
+  READY      @map("ready")
+  DELIVERING @map("delivering")
+  DELIVERED  @map("delivered")
+  CANCELLED  @map("cancelled")
+
+  @@map("order_status")
+}
+
+enum PaymentStatus {
+  PENDING  @map("pending")
+  PAID     @map("paid")
+  FAILED   @map("failed")
+  REFUNDED @map("refunded")
+
+  @@map("payment_status")
+}
+
+enum PaymentMethod {
+  CASH   @map("cash")
+  CARD   @map("card")
+  WALLET @map("wallet")
+
+  @@map("payment_method")
+}
+
+model Order {
+  id String @id @default(uuid()) @db.Uuid
+
+  orderNumber String @unique @map("order_number") @db.VarChar(20)
+
+  userId String? @map("user_id") @db.Uuid
+
+  customerEmail String? @map("customer_email") @db.VarChar(255)
+  customerPhone String? @map("customer_phone") @db.VarChar(20)
+
+  status        OrderStatus    @default(PENDING)
+  paymentStatus PaymentStatus  @default(PENDING) @map("payment_status")
+  paymentMethod PaymentMethod? @map("payment_method")
+
+  // ✅ ADDED: Tap Payment ID
+  paymentId String? @unique @map("payment_id") @db.VarChar(100)
+
+  subtotal       Decimal @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  taxAmount      Decimal @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  deliveryFee    Decimal @default(0) @map("delivery_fee") @db.Decimal(10, 2)
+  totalAmount    Decimal @map("total_amount") @db.Decimal(10, 2)
+
+  notes String?
+
+  deliveryAddress Json @map("delivery_address")
+  paidAt DateTime?
+
+  estimatedDeliveryTime DateTime? @map("estimated_delivery_time") @db.Timestamp(6)
+  actualDeliveryTime    DateTime? @map("actual_delivery_time") @db.Timestamp(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  user          User?                @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([paymentId]) // ✅ ADDED: Index for faster lookups
+  @@map("orders")
+}
+
+model OrderItem {
+  id String @id @default(uuid()) @db.Uuid
+
+  orderId   String  @map("order_id") @db.Uuid
+  productId String? @map("product_id") @db.Uuid
+
+  productName   String  @map("product_name") @db.VarChar(255)
+  productNameAr String? @map("product_name_ar") @db.VarChar(255)
+
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  quantity  Int
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id String @id @default(uuid()) @db.Uuid
+
+  orderId   String      @map("order_id") @db.Uuid
+  status    OrderStatus
+  notes     String?
+  createdBy String?     @map("created_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  creator User? @relation("OrderStatusCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([orderId])
+  @@index([createdBy])
+  @@map("order_status_history")
+}
+enum AdminNotificationType {
+  NEW_ORDER @map("new_order")
+  ORDER_STATUS_UPDATED @map("order_status_updated")
+
+  @@map("admin_notification_type")
+}
+
+model AdminNotification {
+  id        String                @id @default(uuid()) @db.Uuid
+  type      AdminNotificationType
+  title     String                @db.VarChar(150)
+  message   String                @db.Text
+  data      Json
+  isRead    Boolean               @default(false) @map("is_read")
+  readAt    DateTime?             @map("read_at") @db.Timestamp(6)
+  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime              @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("admin_notifications")
+}
+
+model DeliverySetting {
+  id       String  @id @default("DEFAULT")
+  fee      Decimal @default(0) @db.Decimal(10, 2)
+  currency String  @default("QAR")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("delivery_settings")
+}
