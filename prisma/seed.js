@@ -25,6 +25,18 @@ const prisma = new PrismaClient({
 
 async function main() {
   try {
+    // This script seeds well-known test accounts (admin@malaki.com / admin123,
+    // and customerN@email.com / customer123) — never run it against a real
+    // production database. Set ALLOW_PROD_SEED=true only if you fully intend
+    // to do this and will rotate the admin password immediately after.
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "true") {
+      console.error(
+        "❌ Refusing to run: NODE_ENV=production and ALLOW_PROD_SEED is not set to 'true'.\n" +
+          "   This script creates a well-known admin/test password — it must not run against production."
+      );
+      process.exit(1);
+    }
+
     // Test connection first
     try {
       await prisma.$connect();
@@ -394,39 +406,11 @@ async function main() {
       }
     }
 
-    // ─── 9. Create Wishlist items ──────────────────────────────────────────
-    console.log('⭐ Creating wishlist items...');
-    
-    const wishlistProducts = await prisma.product.findMany({
-      where: { isActive: true },
-      take: 3,
-      skip: 2,
-    });
-
-    if (wishlistProducts.length > 0) {
-      let wishlistCount = 0;
-      for (const product of wishlistProducts) {
-        try {
-          await prisma.wishlist.upsert({
-            where: {
-              userId_productId: {
-                userId: customer1.id,
-                productId: product.id,
-              },
-            },
-            update: {},
-            create: {
-              userId: customer1.id,
-              productId: product.id,
-            },
-          });
-          wishlistCount++;
-        } catch (error) {
-          // Skip if already exists
-        }
-      }
-      console.log(`✅ ${wishlistCount} wishlist items added`);
-    }
+    // NOTE: there used to be a "Create Wishlist items" step here, but there is
+    // no Wishlist model in schema.prisma — prisma.wishlist is undefined, so
+    // it always threw and was silently swallowed by its own try/catch,
+    // logging "0 wishlist items added" every run. Removed until a Wishlist
+    // model actually exists.
 
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🎉 Database seeding complete!');

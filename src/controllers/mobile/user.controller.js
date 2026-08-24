@@ -80,7 +80,7 @@ const createMyAddress = async (req, res, next) => {
 const updateMyAddress = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const addressId = req.params.id;
+    const addressId = req.params.addressId;
 
     const address = await userService.updateMyAddress(
       userId,
@@ -101,7 +101,7 @@ const updateMyAddress = async (req, res, next) => {
 const deleteMyAddress = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const addressId = req.params.id;
+    const addressId = req.params.addressId;
 
     const result = await userService.deleteMyAddress(userId, addressId);
 

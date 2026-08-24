@@ -12,29 +12,33 @@ const errorMiddleware = require("./middlewares/error.middleware");
 const app = express();
 
 // ✅ FIX: CORS configuration
+// Base allowlist for local/dev use, plus whatever ADMIN_FRONTEND_URL is set to
+// (e.g. your deployed dashboard URL on Render) and any extra comma-separated
+// origins in CORS_EXTRA_ORIGINS.
 const allowedOrigins = [
   'http://localhost:5173',     // Vite dev server
   'http://127.0.0.1:5173',
   'http://localhost:3000',     // React dev server
   'http://127.0.0.1:3000',
   'http://localhost:5001',     // Backend itself
-  'http://192.168.0.57:5001',  // Your network IP
-  'http://47.78.60.10:5001',   // Your current IP
   'http://10.0.2.2:5001',      // Android emulator
-];
+  env.adminFrontendUrl,
+  ...(process.env.CORS_EXTRA_ORIGINS
+    ? process.env.CORS_EXTRA_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    : []),
+].filter(Boolean);
 
 app.use(
   cors({
     origin: function (origin, callback) {
       // Allow requests with no origin (like mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
-      
-      // Check if origin is allowed
+
+      // Reject anything not on the allowlist instead of silently allowing it
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        // For development, allow all origins
-        callback(null, true);
+        callback(new Error(`Not allowed by CORS: ${origin}`));
       }
     },
     credentials: true,

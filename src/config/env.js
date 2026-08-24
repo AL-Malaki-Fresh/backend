@@ -14,11 +14,12 @@ const env = {
   port: Number(process.env.PORT) || 5001,
   nodeEnv: process.env.NODE_ENV || "development",
 
-  // Database URL - for Prisma 7
-  databaseUrl: process.env.DATABASE_URL || "postgresql://postgres:password@postgres:5432/almalaki",
+  // Database URL - for Prisma 7. No insecure fallback: refuse to boot without
+  // a real connection string rather than silently pointing at a default DB.
+  databaseUrl: requiredEnv("DATABASE_URL"),
 
-  jwtAccessSecret: process.env.JWT_ACCESS_SECRET || requiredEnv("JWT_ACCESS_SECRET"),
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || requiredEnv("JWT_REFRESH_SECRET"),
+  jwtAccessSecret: requiredEnv("JWT_ACCESS_SECRET"),
+  jwtRefreshSecret: requiredEnv("JWT_REFRESH_SECRET"),
   jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "15m",
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
 

@@ -220,6 +220,13 @@ model Cart {
   items CartItem[]
 
   @@unique([userId, sessionId])
+  // Enforces one cart per logged-in user at the database level. Postgres
+  // does not treat two NULL values as equal under a unique index, so this
+  // still allows any number of guest carts (userId IS NULL) while making
+  // the "get or create my cart" upsert in cart.service.js race-safe for
+  // authenticated users — the previous check-then-create pattern could
+  // create two carts for the same brand-new user under concurrent requests.
+  @@unique([userId])
   @@index([userId])
   @@map("carts")
 }
@@ -310,7 +317,12 @@ model Order {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
 
-  user          User?                @relation(fields: [userId], references: [id])
+  // onDelete: Restrict (was the unspecified default, SetNull) — a user with
+  // order history should not be hard-deletable, since SetNull was silently
+  // severing the audit trail (userId went null on their past orders).
+  // Deleting such a user now fails with a Prisma FK error instead; deactivate
+  // them (isActive: false) rather than deleting if they have past orders.
+  user          User?                @relation(fields: [userId], references: [id], onDelete: Restrict)
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
 
@@ -387,6 +399,16 @@ model DeliverySetting {
   id       String  @id @default("DEFAULT")
   fee      Decimal @default(0) @db.Decimal(10, 2)
   currency String  @default("QAR")
+
+  // "Market Information" fields — the dashboard's Settings page collects
+  // these but, before this fix, only ever sent fee/currency to the API, so
+  // they silently never persisted despite the UI showing a success message.
+  businessName  String? @map("business_name") @db.VarChar(150)
+  businessEmail String? @map("business_email") @db.VarChar(255)
+  businessPhone String? @map("business_phone") @db.VarChar(30)
+  country       String? @db.VarChar(100)
+  city          String? @db.VarChar(100)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("delivery_settings")

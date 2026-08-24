@@ -13,3 +13,7 @@ yarn-debug.log*
 yarn-error.log*
 
 .prisma/client
+
+# curl cookie jars from manual API testing (cookies.txt, customer_cookies.txt)
+# — can end up holding real session/JWT cookies, shouldn't be committed.
+*cookies.txt

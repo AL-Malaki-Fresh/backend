@@ -52,6 +52,45 @@ const normalizeCurrency = (value) => {
   return currency;
 };
 
+const MAX_TEXT_FIELD_LENGTHS = {
+  businessName: 150,
+  businessEmail: 255,
+  businessPhone: 30,
+  country: 100,
+  city: 100,
+};
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// All the "Market Information" fields are optional — an admin may only
+// want to set the delivery fee/currency for now — but if a value IS
+// provided it gets trimmed and length/format checked.
+const normalizeOptionalText = (value, field) => {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const text = String(value).trim();
+
+  if (!text) {
+    return null;
+  }
+
+  if (text.length > MAX_TEXT_FIELD_LENGTHS[field]) {
+    throw createError(
+      `${field} must be at most ${MAX_TEXT_FIELD_LENGTHS[field]} characters`,
+      400,
+      "INVALID_MARKET_INFO"
+    );
+  }
+
+  if (field === "businessEmail" && !EMAIL_RE.test(text)) {
+    throw createError("Invalid business email", 400, "INVALID_MARKET_INFO");
+  }
+
+  return text;
+};
+
 const getDeliverySetting = async (db = prisma) => {
   return db.deliverySetting.upsert({
     where: {
@@ -73,24 +112,30 @@ const getDeliveryFee = async (db = prisma) => {
 };
 
 const updateDeliverySetting = async (
-  { fee, currency },
+  { fee, currency, businessName, businessEmail, businessPhone, country, city },
   db = prisma
 ) => {
   const normalizedFee = normalizeFee(fee);
   const normalizedCurrency = normalizeCurrency(currency);
 
+  const data = {
+    fee: normalizedFee,
+    currency: normalizedCurrency,
+    businessName: normalizeOptionalText(businessName, "businessName"),
+    businessEmail: normalizeOptionalText(businessEmail, "businessEmail"),
+    businessPhone: normalizeOptionalText(businessPhone, "businessPhone"),
+    country: normalizeOptionalText(country, "country"),
+    city: normalizeOptionalText(city, "city"),
+  };
+
   return db.deliverySetting.upsert({
     where: {
       id: DEFAULT_SETTING_ID,
     },
-    update: {
-      fee: normalizedFee,
-      currency: normalizedCurrency,
-    },
+    update: data,
     create: {
       id: DEFAULT_SETTING_ID,
-      fee: normalizedFee,
-      currency: normalizedCurrency,
+      ...data,
     },
   });
 };

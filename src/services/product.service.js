@@ -141,7 +141,7 @@ const getPagination = ({
           Math.floor(rawLimit),
           MAX_LIMIT
         )
-      : limit;
+      : 10;
 
   const skip =
     (pageNumber - 1) * limitNumber;

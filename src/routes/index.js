@@ -16,7 +16,7 @@ const adminDashboardRoutes = require("./admin/dashboard.routes");
 
 // ✅ UNCOMMENT THIS - Notification routes
 const adminNotificationRoutes = require("./admin/notification.routes");
-// const adminUploadRoutes = require("./admin/upload.routes");
+const adminUploadRoutes = require("./admin/upload.routes");
 
 const mobileAuthRoutes = require("./mobile/auth.routes");
 const mobileUserRoutes = require("./mobile/user.routes");
@@ -99,12 +99,12 @@ router.use(
   adminNotificationRoutes
 );
    
-// router.use(
-//   "/admin/uploads",
-//   authenticate,
-//   authorizeRoles("ADMIN"),
-//   adminUploadRoutes
-// );
+router.use(
+  "/admin/uploads",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminUploadRoutes
+);
 
 // ─── Public mobile routes ──────────────────────────────────────────────────
 

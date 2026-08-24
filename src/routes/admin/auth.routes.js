@@ -7,9 +7,10 @@ const {
   authenticate,
   authorizeRoles,
 } = require("../../middlewares/auth.middleware");
+const { authRateLimiter } = require("../../middlewares/rateLimit.middleware");
 
-router.post("/login", adminAuthController.login);
-router.post("/refresh-token", adminAuthController.refreshToken);
+router.post("/login", authRateLimiter, adminAuthController.login);
+router.post("/refresh-token", authRateLimiter, adminAuthController.refreshToken);
 router.post("/logout", adminAuthController.logout);
 
 router.get(

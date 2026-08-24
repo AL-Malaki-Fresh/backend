@@ -626,4 +626,5 @@ async function retrieveCharge(chargeId) {
 module.exports = {
   createCardChargeForOrder,
   retrieveCharge,
+  validateTapConfiguration,
 };

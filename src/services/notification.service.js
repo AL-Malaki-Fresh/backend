@@ -575,96 +575,13 @@ const markNotificationAsRead =
         },
       });
   };
-const updatePaymentStatus = async (
-  orderId,
-  paymentStatus,
-  adminUser
-) => {
-  const allowedStatuses = [
-    "PENDING",
-    "PAID",
-    "FAILED",
-    "REFUNDED",
-  ];
-
-  const normalizedStatus = String(
-    paymentStatus || ""
-  ).toUpperCase();
-
-  if (!allowedStatuses.includes(normalizedStatus)) {
-    throw createError(
-      "Invalid payment status",
-      400,
-      "INVALID_PAYMENT_STATUS"
-    );
-  }
-
-  const order = await prisma.order.findUnique({
-    where: {
-      id: orderId,
-    },
-
-    include: {
-      payment: true,
-      customer: true,
-    },
-  });
-
-  if (!order) {
-    throw createError(
-      "Order not found",
-      404,
-      "ORDER_NOT_FOUND"
-    );
-  }
-
-  const updatedOrder = await prisma.$transaction(
-    async (tx) => {
-      if (order.payment) {
-        await tx.payment.update({
-          where: {
-            id: order.payment.id,
-          },
-
-          data: {
-            status: normalizedStatus,
-
-            paidAt:
-              normalizedStatus === "PAID"
-                ? new Date()
-                : null,
-          },
-        });
-      }
-
-      return tx.order.update({
-        where: {
-          id: orderId,
-        },
-
-        data: {
-          paymentStatus: normalizedStatus,
-
-          paidAt:
-            normalizedStatus === "PAID"
-              ? new Date()
-              : null,
-
-          updatedById:
-            adminUser?.id || undefined,
-        },
-
-        include: {
-          customer: true,
-          payment: true,
-          items: true,
-        },
-      });
-    }
-  );
-
-  return updatedOrder;
-};
+// NOTE: there used to be an `updatePaymentStatus` here that referenced
+// `order.payment` / `order.customer` relations and an `updatedById` field
+// that don't exist in schema.prisma — it was never called (the real,
+// working implementation admin/order.controller.js actually uses is
+// order.service.js's `updatePaymentStatus`), so this was dead code that
+// would only have blown up if someone wired it in later without checking
+// the schema. Removed.
 const markAllNotificationsAsRead =
   async () => {
     await prisma

@@ -380,7 +380,11 @@ const getDashboardStats = async (query = {}) => {
       pending: ordersByStatus.PENDING || 0,
       confirmed: ordersByStatus.CONFIRMED || 0,
       preparing: ordersByStatus.PREPARING || 0,
-      outForDelivery: ordersByStatus.OUT_FOR_DELIVERY || 0,
+      // OrderStatus enum value is DELIVERING (see schema.prisma), not
+      // OUT_FOR_DELIVERY — that key never matched, so this stat (and the
+      // dashboard's "out for delivery" tile) always silently read as 0
+      // regardless of how many orders were actually out for delivery.
+      outForDelivery: ordersByStatus.DELIVERING || 0,
       delivered: ordersByStatus.DELIVERED || 0,
       cancelled: ordersByStatus.CANCELLED || 0,
       paid: paymentsByStatus.PAID || 0,

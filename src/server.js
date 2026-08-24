@@ -3,9 +3,26 @@
 const app = require("./app");
 const env = require("./config/env");
 const prisma = require("./config/prisma");
+const { validateTapConfiguration } = require("./services/tap.service");
 
 const startServer = async () => {
   try {
+    // Warn (don't block boot) if Tap isn't configured yet. The rest of the
+    // app — products, orders, users, admin — doesn't depend on Tap, so a
+    // missing/incomplete payment gateway config shouldn't take the whole
+    // backend down. validateTapConfiguration() still runs (and still
+    // throws) at the moment an actual payment is attempted, in
+    // tap.service.js — that's where it actually matters.
+    try {
+      validateTapConfiguration();
+      console.log("✅ Tap payment configuration looks valid");
+    } catch (tapConfigError) {
+      console.warn(
+        "⚠️  Tap payment is not fully configured yet — checkout will fail until it is:",
+        tapConfigError.message
+      );
+    }
+
     await prisma.$connect();
     console.log("✅ Database connected successfully");
 

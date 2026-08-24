@@ -9,21 +9,21 @@ COPY package*.json ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Install additional required packages
-RUN npm install cookie-parser multer
-# Prisma config requires DATABASE_URL while generating the client.
-# Prisma generate does not connect to this database.
+# Prisma config requires DATABASE_URL to be resolvable while generating the
+# client (it does not connect to this database — the value is unused at
+# runtime since docker-compose overrides it). This MUST be set before
+# `npm ci`, because package.json's postinstall hook runs `prisma generate`
+# as part of that install step.
 ENV DATABASE_URL="postgresql://postgres:password@postgres:5432/almalaki"
 
-RUN npx prisma generate
+# Install dependencies (cookie-parser, multer, express-rate-limit are
+# already regular dependencies in package.json — no need to install
+# them separately, and doing so weakens lockfile reproducibility). This
+# also runs `prisma generate` via the postinstall hook.
+RUN npm ci --only=production
+
 # Copy source code
 COPY src ./src
-
-# Generate Prisma client
-RUN npx prisma generate
 
 EXPOSE 5001
 

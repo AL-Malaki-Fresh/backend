@@ -208,7 +208,7 @@ const getPagination = ({
           Math.floor(rawLimit),
           MAX_LIMIT
         )
-      : limit;
+      : 10;
 
   return {
     pageNumber,
@@ -702,7 +702,10 @@ const createOrderFromCart = async (
     paymentMethod =
       PaymentMethod.CASH,
     notes,
-    paymentId = null,
+    // NOTE: paymentId is intentionally NOT accepted from the client here —
+    // it's server-set later via updateOrderPaymentId() once a real Tap
+    // charge exists. Accepting it from req.body would let a client set an
+    // arbitrary/duplicate value on a unique column at order-creation time.
   }
 ) => {
   const userId = user.id;
@@ -842,9 +845,7 @@ const createOrderFromCart = async (
             paymentMethod:
               normalizedPaymentMethod,
 
-            paymentId:
-              paymentId ||
-              null,
+            paymentId: null,
 
             subtotal:
               subtotal.toDecimalPlaces(

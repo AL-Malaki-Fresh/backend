@@ -105,31 +105,24 @@ const formatCartResponse = (cart) => {
 };
 
 const getOrCreateUserCart = async (userId) => {
-  let cart = await prisma.cart.findFirst({
+  // Atomic upsert against the `carts_user_id_key` unique index (see the
+  // 20260823120000_cart_and_order_integrity migration) instead of a
+  // check-then-create — two concurrent requests for a brand-new user's
+  // cart used to be able to both see "no cart" and both create one,
+  // silently splitting items across two carts.
+  return prisma.cart.upsert({
     where: {
       userId,
     },
-    orderBy: {
-      updatedAt: "desc",
+    update: {},
+    create: {
+      userId,
+      sessionId: null,
     },
     select: {
       id: true,
     },
   });
-
-  if (!cart) {
-    cart = await prisma.cart.create({
-      data: {
-        userId,
-        sessionId: null,
-      },
-      select: {
-        id: true,
-      },
-    });
-  }
-
-  return cart;
 };
 
 const getProductForCart = async (productId) => {
@@ -182,58 +175,89 @@ const getMyCart = async (userId) => {
   return formatCartResponse(fullCart);
 };
 
+const addOrMergeCartItem = async (tx, { cartId, product, quantityValue }) => {
+  const existingItem = await tx.cartItem.findFirst({
+    where: {
+      cartId,
+      productId: product.id,
+      variantId: null,
+    },
+    select: {
+      id: true,
+      quantity: true,
+    },
+  });
+
+  if (existingItem) {
+    const newQuantity = existingItem.quantity + quantityValue;
+
+    if (newQuantity > MAX_CART_QUANTITY) {
+      throw createError(
+        `Quantity cannot exceed ${MAX_CART_QUANTITY}`,
+        400,
+        "MAX_CART_QUANTITY_EXCEEDED"
+      );
+    }
+
+    await tx.cartItem.update({
+      where: {
+        id: existingItem.id,
+      },
+      data: {
+        quantity: newQuantity,
+        unitPrice: product.price,
+      },
+    });
+
+    return;
+  }
+
+  await tx.cartItem.create({
+    data: {
+      cartId,
+      productId: product.id,
+      variantId: null,
+      quantity: quantityValue,
+      unitPrice: product.price,
+    },
+  });
+};
+
 const addItemToCart = async (userId, { productId, quantity = 1 }) => {
   const quantityValue = normalizeQuantity(quantity);
   const product = await getProductForCart(productId);
   const cart = await getOrCreateUserCart(userId);
 
-  await prisma.$transaction(async (tx) => {
-    const existingItem = await tx.cartItem.findFirst({
-      where: {
-        cartId: cart.id,
-        productId: product.id,
-        variantId: null,
-      },
-      select: {
-        id: true,
-        quantity: true,
-      },
-    });
-
-    if (existingItem) {
-      const newQuantity = existingItem.quantity + quantityValue;
-
-      if (newQuantity > MAX_CART_QUANTITY) {
-        throw createError(
-          `Quantity cannot exceed ${MAX_CART_QUANTITY}`,
-          400,
-          "MAX_CART_QUANTITY_EXCEEDED"
-        );
+  // check-then-write races: run the merge under SERIALIZABLE isolation so
+  // Postgres itself rejects a conflicting concurrent transaction (P2034)
+  // instead of letting both requests see "no existing row" and both insert.
+  // The DB also has a partial unique index (cart_items_cart_id_product_id_
+  // no_variant_key, see the 20260823120000 migration) as a second line of
+  // defense — if that ever fires (P2002) we treat it the same way: retry,
+  // which will now find the row the other request just created and merge
+  // into it instead of erroring the customer's "add to cart" tap.
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await prisma.$transaction(
+        (tx) =>
+          addOrMergeCartItem(tx, {
+            cartId: cart.id,
+            product,
+            quantityValue,
+          }),
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
+      break;
+    } catch (error) {
+      const isRetryableConflict =
+        error.code === "P2034" || error.code === "P2002";
+      if (!isRetryableConflict || attempt === MAX_ATTEMPTS) {
+        throw error;
       }
-
-      await tx.cartItem.update({
-        where: {
-          id: existingItem.id,
-        },
-        data: {
-          quantity: newQuantity,
-          unitPrice: product.price,
-        },
-      });
-
-      return;
+      // fall through and retry
     }
-
-    await tx.cartItem.create({
-      data: {
-        cartId: cart.id,
-        productId: product.id,
-        variantId: null,
-        quantity: quantityValue,
-        unitPrice: product.price,
-      },
-    });
-  });
+  }
 
   return getMyCart(userId);
 };

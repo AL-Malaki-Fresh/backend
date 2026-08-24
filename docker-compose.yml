@@ -7,14 +7,22 @@ services:
     ports:
       - "5001:5001"
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 5001
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/almalaki
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-your-super-secret-access-key}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-refresh-key}
+      # Local-dev-only fallbacks so `docker compose up` works with no .env
+      # file at all. These are NOT used on Render (which doesn't read this
+      # file) — set real values in Render's own env var settings before
+      # deploying. env.js still hard-requires these either way, so a
+      # deployment that forgets to set them will still refuse to boot.
+      # This default DATABASE_URL matches the postgres service's own
+      # POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB defaults below — if you
+      # override one of those in .env, update this to match.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:dev-only-postgres-password@postgres:5432/almalaki}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev-only-insecure-access-secret-change-before-deploy}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-only-insecure-refresh-secret-change-before-deploy}
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
-      ADMIN_FRONTEND_URL: http://localhost:5173
+      ADMIN_FRONTEND_URL: ${ADMIN_FRONTEND_URL:-http://localhost:5173}
       TAP_SECRET_KEY: ${TAP_SECRET_KEY}
       TAP_MERCHANT_ID: ${TAP_MERCHANT_ID}
       TAP_RETURN_URL: ${TAP_RETURN_URL}
@@ -35,9 +43,11 @@ services:
     image: postgres:15-alpine
     container_name: almalaki-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: almalaki
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      # Local-dev-only default — keep in sync with the backend service's
+      # DATABASE_URL default above if you change this.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev-only-postgres-password}
+      POSTGRES_DB: ${POSTGRES_DB:-almalaki}
     ports:
       - "5433:5432"
     volumes:
@@ -55,8 +65,9 @@ services:
     image: dpage/pgadmin4
     container_name: almalaki-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@almalaki.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@almalaki.com}
+      # Local-dev-only default.
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-dev-only-pgadmin-password}
     ports:
       - "5050:80"
     depends_on:
