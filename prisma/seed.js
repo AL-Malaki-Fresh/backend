@@ -8,8 +8,18 @@ require('dotenv').config();
 console.log('📡 Connecting to database...');
 
 // Create a PostgreSQL connection pool
+// Render's *external* Postgres endpoint (the one reachable from outside
+// Render's own network, e.g. this script running on a local machine)
+// requires SSL. Without this, the initial handshake can still succeed but
+// the connection gets closed by the server as soon as a real
+// transaction starts — which shows up as a confusing P1017
+// "ConnectionClosed" error deep inside the Prisma adapter.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl:
+    /@(localhost|127\.0\.0\.1|postgres):/.test(process.env.DATABASE_URL || '')
+      ? false
+      : { rejectUnauthorized: false },
 });
 
 // Create the Prisma adapter

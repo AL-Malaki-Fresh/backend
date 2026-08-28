@@ -16,12 +16,15 @@ const app = express();
 // (e.g. your deployed dashboard URL on Render) and any extra comma-separated
 // origins in CORS_EXTRA_ORIGINS.
 const allowedOrigins = [
-  'http://localhost:5173',     // Vite dev server
+ /* 'http://localhost:5173',     // Vite dev server
   'http://127.0.0.1:5173',
   'http://localhost:3000',     // React dev server
   'http://127.0.0.1:3000',
   'http://localhost:5001',     // Backend itself
-  'http://10.0.2.2:5001',      // Android emulator
+  'http://10.0.2.2:5001',    */  // Android emulator
+  'https://admin-malaki.almalakifresh.com', // Deployed dashboard (Vercel/custom domain) — hardcoded
+                                              // fallback so login doesn't break if ADMIN_FRONTEND_URL
+                                              // is ever unset/misconfigured on Render.
   env.adminFrontendUrl,
   ...(process.env.CORS_EXTRA_ORIGINS
     ? process.env.CORS_EXTRA_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)

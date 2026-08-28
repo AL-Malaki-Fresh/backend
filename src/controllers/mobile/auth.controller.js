@@ -39,7 +39,30 @@ const loginCustomer = async (req, res, next) => {
   }
 };
 
+// userService.refreshAccessToken() already existed and was fully
+// implemented, but nothing ever called it: there was no controller
+// handler and no route for it, so the mobile app's POST /mobile/auth/refresh
+// always hit a 404, which it silently treated as "refresh failed" and
+// logged the user out every time the 15-minute access token expired.
+const refreshToken = async (req, res, next) => {
+  try {
+    const result = await userService.refreshAccessToken(
+      req.body.refreshToken
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Access token refreshed successfully",
+      code: "TOKEN_REFRESHED",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registerCustomer,
   loginCustomer,
+  refreshToken,
 };
