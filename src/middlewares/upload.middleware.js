@@ -1,28 +1,4 @@
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-
-const uploadDir = path.join(__dirname, "../../uploads/products");
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-
-  filename: (req, file, cb) => {
-    const uniqueName =
-      Date.now() +
-      "-" +
-      Math.round(Math.random() * 1e9) +
-      path.extname(file.originalname);
-
-    cb(null, uniqueName);
-  },
-});
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
@@ -34,8 +10,13 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
+// Files are held in memory only (never written to local disk) and streamed
+// straight to Cloudinary by the controller after the content check below
+// passes. We stopped using multer's diskStorage on purpose: Render's web
+// service disk is ephemeral, so anything saved there was silently lost on
+// every redeploy/restart — see the 2026-08-28 note in project memory.
 const uploadProductImage = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024,
@@ -45,9 +26,9 @@ const uploadProductImage = multer({
 // ─── Real content validation ────────────────────────────────────────────────
 // multer's fileFilter above only sees the client-supplied `mimetype` header,
 // which a client can set to anything regardless of the file's actual bytes.
-// This checks the magic-byte signature of the file multer already saved to
-// disk, and deletes it if the content doesn't actually match an allowed
-// image type. Use as the next middleware after `uploadProductImage.single(...)`.
+// This checks the magic-byte signature of the in-memory buffer BEFORE it
+// ever gets uploaded to Cloudinary. Use as the next middleware after
+// `uploadProductImage.single(...)`.
 const matchesSignature = (buffer, signature) =>
   signature.every((byte, i) => buffer[i] === byte);
 
@@ -71,27 +52,15 @@ const isValidImageContent = (buffer) => {
 const validateUploadedImageContent = (req, res, next) => {
   if (!req.file) return next();
 
-  fs.open(req.file.path, "r", (openErr, fd) => {
-    if (openErr) return next(openErr);
-
-    const header = Buffer.alloc(12);
-    fs.read(fd, header, 0, 12, 0, (readErr) => {
-      fs.close(fd, () => {});
-
-      if (readErr) return next(readErr);
-
-      if (!isValidImageContent(header)) {
-        fs.unlink(req.file.path, () => {});
-        return res.status(400).json({
-          success: false,
-          code: "INVALID_IMAGE_CONTENT",
-          message: "Uploaded file is not a valid JPG, PNG, or WEBP image",
-        });
-      }
-
-      next();
+  if (!isValidImageContent(req.file.buffer)) {
+    return res.status(400).json({
+      success: false,
+      code: "INVALID_IMAGE_CONTENT",
+      message: "Uploaded file is not a valid JPG, PNG, or WEBP image",
     });
-  });
+  }
+
+  next();
 };
 
 module.exports = {
