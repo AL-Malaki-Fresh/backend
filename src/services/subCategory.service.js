@@ -7,22 +7,31 @@ const createError = (message, statusCode, code) => {
   return error;
 };
 
-const categorySelect = {
+const subCategorySelect = {
   id: true,
+  categoryId: true,
   name: true,
-  slug: true,
   nameAr: true,
+  slug: true,
   description: true,
   descriptionAr: true,
+  icon: true,
   imageUrl: true,
   isActive: true,
   sortOrder: true,
   createdAt: true,
   updatedAt: true,
+  category: {
+    select: {
+      id: true,
+      name: true,
+      nameAr: true,
+      slug: true,
+    },
+  },
   _count: {
     select: {
       products: true,
-      subCategories: true,
     },
   },
 };
@@ -63,26 +72,26 @@ const generateSlug = (text) => {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return slug || `category-${Date.now()}`;
+  return slug || `subcategory-${Date.now()}`;
 };
 
-const createUniqueSlug = async (name, currentCategoryId = null) => {
+const createUniqueSlug = async (name, currentSubCategoryId = null) => {
   const baseSlug = generateSlug(name);
   let slug = baseSlug;
   let counter = 1;
 
   while (true) {
-    const existingCategory = await prisma.category.findFirst({
+    const existingSubCategory = await prisma.subCategory.findFirst({
       where: {
         slug,
-        ...(currentCategoryId ? { id: { not: currentCategoryId } } : {}),
+        ...(currentSubCategoryId ? { id: { not: currentSubCategoryId } } : {}),
       },
       select: {
         id: true,
       },
     });
 
-    if (!existingCategory) {
+    if (!existingSubCategory) {
       return slug;
     }
 
@@ -91,11 +100,43 @@ const createUniqueSlug = async (name, currentCategoryId = null) => {
   }
 };
 
-const createCategory = async ({
+const validateCategory = async (categoryId) => {
+  if (!categoryId) {
+    throw createError("Category is required", 400, "CATEGORY_REQUIRED");
+  }
+
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+    select: { id: true },
+  });
+
+  if (!category) {
+    throw createError("Category not found", 404, "CATEGORY_NOT_FOUND");
+  }
+
+  return category;
+};
+
+const findSubCategoryOrFail = async (id) => {
+  const subCategory = await prisma.subCategory.findUnique({
+    where: { id },
+    select: { id: true, categoryId: true },
+  });
+
+  if (!subCategory) {
+    throw createError("Subcategory not found", 404, "SUB_CATEGORY_NOT_FOUND");
+  }
+
+  return subCategory;
+};
+
+const createSubCategory = async ({
+  categoryId,
   name,
   nameAr,
   description,
   descriptionAr,
+  icon,
   imageUrl,
   isActive = true,
   sortOrder = 0,
@@ -104,9 +145,9 @@ const createCategory = async ({
 
   if (!normalizedName) {
     throw createError(
-      "Category name is required",
+      "Subcategory name is required",
       400,
-      "CATEGORY_NAME_REQUIRED"
+      "SUB_CATEGORY_NAME_REQUIRED"
     );
   }
 
@@ -120,28 +161,33 @@ const createCategory = async ({
     );
   }
 
+  await validateCategory(categoryId);
+
   const slug = await createUniqueSlug(normalizedName);
 
-  return prisma.category.create({
+  return prisma.subCategory.create({
     data: {
+      categoryId,
       name: normalizedName,
       slug,
       nameAr: normalizeString(nameAr),
       description: normalizeString(description),
       descriptionAr: normalizeString(descriptionAr),
+      icon: normalizeString(icon),
       imageUrl: normalizeString(imageUrl),
       isActive: activeValue,
       sortOrder: normalizeNumber(sortOrder, 0),
     },
-    select: categorySelect,
+    select: subCategorySelect,
   });
 };
 
-const getAllCategoriesForAdmin = async ({
+const getAllSubCategoriesForAdmin = async ({
   page = 1,
   limit = 10,
   search,
   isActive,
+  categoryId,
 } = {}) => {
   const rawPage = Number(page);
   const rawLimit = Number(limit);
@@ -168,6 +214,7 @@ const getAllCategoriesForAdmin = async ({
   }
 
   const where = {
+    ...(categoryId ? { categoryId } : {}),
     ...(activeFilter !== undefined ? { isActive: activeFilter } : {}),
 
     ...(searchText
@@ -183,19 +230,19 @@ const getAllCategoriesForAdmin = async ({
       : {}),
   };
 
-  const [categories, total] = await Promise.all([
-    prisma.category.findMany({
+  const [subCategories, total] = await Promise.all([
+    prisma.subCategory.findMany({
       where,
       skip,
       take: limitNumber,
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-      select: categorySelect,
+      select: subCategorySelect,
     }),
-    prisma.category.count({ where }),
+    prisma.subCategory.count({ where }),
   ]);
 
   return {
-    data: categories,
+    data: subCategories,
     pagination: {
       total,
       page: pageNumber,
@@ -205,23 +252,11 @@ const getAllCategoriesForAdmin = async ({
   };
 };
 
-const getCategoryByIdForAdmin = async (id) => {
-  const category = await prisma.category.findUnique({
+const getSubCategoryByIdForAdmin = async (id) => {
+  const subCategory = await prisma.subCategory.findUnique({
     where: { id },
     select: {
-      ...categorySelect,
-      subCategories: {
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-        select: {
-          id: true,
-          name: true,
-          nameAr: true,
-          slug: true,
-          imageUrl: true,
-          isActive: true,
-          sortOrder: true,
-        },
-      },
+      ...subCategorySelect,
       products: {
         select: {
           id: true,
@@ -239,44 +274,37 @@ const getCategoryByIdForAdmin = async (id) => {
     },
   });
 
-  if (!category) {
-    throw createError("Category not found", 404, "CATEGORY_NOT_FOUND");
+  if (!subCategory) {
+    throw createError("Subcategory not found", 404, "SUB_CATEGORY_NOT_FOUND");
   }
 
-  return category;
+  return subCategory;
 };
 
-const updateCategory = async (
+const updateSubCategory = async (
   id,
   {
+    categoryId,
     name,
     nameAr,
     description,
     descriptionAr,
+    icon,
     imageUrl,
     isActive,
     sortOrder,
   }
 ) => {
-  const existingCategory = await prisma.category.findUnique({
-    where: { id },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!existingCategory) {
-    throw createError("Category not found", 404, "CATEGORY_NOT_FOUND");
-  }
+  await findSubCategoryOrFail(id);
 
   const normalizedName =
     name !== undefined ? normalizeString(name) : undefined;
 
   if (name !== undefined && !normalizedName) {
     throw createError(
-      "Category name cannot be empty",
+      "Subcategory name cannot be empty",
       400,
-      "CATEGORY_NAME_REQUIRED"
+      "SUB_CATEGORY_NAME_REQUIRED"
     );
   }
 
@@ -290,14 +318,19 @@ const updateCategory = async (
     );
   }
 
+  if (categoryId !== undefined) {
+    await validateCategory(categoryId);
+  }
+
   const newSlug =
     normalizedName !== undefined
       ? await createUniqueSlug(normalizedName, id)
       : undefined;
 
-  return prisma.category.update({
+  return prisma.subCategory.update({
     where: { id },
     data: {
+      ...(categoryId !== undefined ? { categoryId } : {}),
       ...(normalizedName !== undefined ? { name: normalizedName } : {}),
       ...(newSlug !== undefined ? { slug: newSlug } : {}),
       ...(nameAr !== undefined ? { nameAr: normalizeString(nameAr) } : {}),
@@ -307,17 +340,18 @@ const updateCategory = async (
       ...(descriptionAr !== undefined
         ? { descriptionAr: normalizeString(descriptionAr) }
         : {}),
+      ...(icon !== undefined ? { icon: normalizeString(icon) } : {}),
       ...(imageUrl !== undefined ? { imageUrl: normalizeString(imageUrl) } : {}),
       ...(isActive !== undefined ? { isActive: activeValue } : {}),
       ...(sortOrder !== undefined
         ? { sortOrder: normalizeNumber(sortOrder, 0) }
         : {}),
     },
-    select: categorySelect,
+    select: subCategorySelect,
   });
 };
 
-const updateCategoryStatus = async (id, isActive) => {
+const updateSubCategoryStatus = async (id, isActive) => {
   const activeValue = parseBoolean(isActive);
 
   if (activeValue === undefined) {
@@ -328,76 +362,56 @@ const updateCategoryStatus = async (id, isActive) => {
     );
   }
 
-  const existingCategory = await prisma.category.findUnique({
-    where: { id },
-    select: {
-      id: true,
-    },
-  });
+  await findSubCategoryOrFail(id);
 
-  if (!existingCategory) {
-    throw createError("Category not found", 404, "CATEGORY_NOT_FOUND");
-  }
-
-  return prisma.category.update({
+  return prisma.subCategory.update({
     where: { id },
     data: {
       isActive: activeValue,
     },
-    select: categorySelect,
+    select: subCategorySelect,
   });
 };
 
-const deleteCategory = async (id) => {
-  const existingCategory = await prisma.category.findUnique({
+const deleteSubCategory = async (id) => {
+  const existingSubCategory = await prisma.subCategory.findUnique({
     where: { id },
     include: {
       products: {
         select: { id: true },
         take: 1,
       },
-      subCategories: {
-        select: { id: true },
-        take: 1,
-      },
     },
   });
 
-  if (!existingCategory) {
-    throw createError("Category not found", 404, "CATEGORY_NOT_FOUND");
+  if (!existingSubCategory) {
+    throw createError("Subcategory not found", 404, "SUB_CATEGORY_NOT_FOUND");
   }
 
-  if (existingCategory.products.length > 0) {
+  if (existingSubCategory.products.length > 0) {
     throw createError(
-      "Cannot delete category because it has products",
+      "Cannot delete subcategory because it has products",
       409,
-      "CATEGORY_HAS_PRODUCTS"
+      "SUB_CATEGORY_HAS_PRODUCTS"
     );
   }
 
-  if (existingCategory.subCategories.length > 0) {
-    throw createError(
-      "Cannot delete category because it has subcategories",
-      409,
-      "CATEGORY_HAS_CHILDREN"
-    );
-  }
-
-  await prisma.category.delete({
+  await prisma.subCategory.delete({
     where: { id },
   });
 
   return {
-    message: "Category deleted successfully",
+    message: "Subcategory deleted successfully",
   };
 };
 
-const getCategoriesForMobile = async ({ search } = {}) => {
+const getSubCategoriesForMobile = async ({ categoryId, search } = {}) => {
   const searchText = typeof search === "string" ? search.trim() : "";
 
-  return prisma.category.findMany({
+  return prisma.subCategory.findMany({
     where: {
       isActive: true,
+      ...(categoryId ? { categoryId } : {}),
 
       ...(searchText
         ? {
@@ -414,62 +428,34 @@ const getCategoriesForMobile = async ({ search } = {}) => {
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     select: {
       id: true,
+      categoryId: true,
       name: true,
-      slug: true,
       nameAr: true,
+      slug: true,
       description: true,
       descriptionAr: true,
-      imageUrl: true,
       icon: true,
-      subCategories: {
-        where: {
-          isActive: true,
-        },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          nameAr: true,
-          imageUrl: true,
-          icon: true,
-          categoryId: true,
-        },
-      },
+      imageUrl: true,
     },
   });
 };
 
-const getCategoryByIdForMobile = async (id) => {
-  const category = await prisma.category.findFirst({
+const getSubCategoryByIdForMobile = async (id) => {
+  const subCategory = await prisma.subCategory.findFirst({
     where: {
       id,
       isActive: true,
     },
     select: {
       id: true,
+      categoryId: true,
       name: true,
-      slug: true,
       nameAr: true,
+      slug: true,
       description: true,
       descriptionAr: true,
-      imageUrl: true,
       icon: true,
-      subCategories: {
-        where: {
-          isActive: true,
-        },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          nameAr: true,
-          imageUrl: true,
-          icon: true,
-          categoryId: true,
-        },
-      },
+      imageUrl: true,
       products: {
         where: {
           isActive: true,
@@ -491,21 +477,21 @@ const getCategoryByIdForMobile = async (id) => {
     },
   });
 
-  if (!category) {
-    throw createError("Category not found", 404, "CATEGORY_NOT_FOUND");
+  if (!subCategory) {
+    throw createError("Subcategory not found", 404, "SUB_CATEGORY_NOT_FOUND");
   }
 
-  return category;
+  return subCategory;
 };
 
 module.exports = {
-  createCategory,
-  getAllCategoriesForAdmin,
-  getCategoryByIdForAdmin,
-  updateCategory,
-  updateCategoryStatus,
-  deleteCategory,
+  createSubCategory,
+  getAllSubCategoriesForAdmin,
+  getSubCategoryByIdForAdmin,
+  updateSubCategory,
+  updateSubCategoryStatus,
+  deleteSubCategory,
 
-  getCategoriesForMobile,
-  getCategoryByIdForMobile,
+  getSubCategoriesForMobile,
+  getSubCategoryByIdForMobile,
 };

@@ -8,6 +8,7 @@ const adminDeliverySettingRoutes =
 const adminUserRoutes = require("./admin/user.routes");
 const adminAuthRoutes = require("./admin/auth.routes");
 const adminCategoryRoutes = require("./admin/category.routes");
+const adminSubCategoryRoutes = require("./admin/subCategory.routes");
 const adminProductRoutes = require("./admin/product.routes");
 const adminOrderRoutes = require("./admin/order.routes");
 
@@ -21,6 +22,7 @@ const adminUploadRoutes = require("./admin/upload.routes");
 const mobileAuthRoutes = require("./mobile/auth.routes");
 const mobileUserRoutes = require("./mobile/user.routes");
 const mobileCategoryRoutes = require("./mobile/category.routes");
+const mobileSubCategoryRoutes = require("./mobile/subCategory.routes");
 const mobileProductRoutes = require("./mobile/product.routes");
 const mobileOrderRoutes = require("./mobile/order.routes");
 const mobileCartRoutes = require("./mobile/cart.routes");
@@ -70,6 +72,13 @@ router.use(
 );
 
 router.use(
+  "/admin/subcategories",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminSubCategoryRoutes
+);
+
+router.use(
   "/admin/products",
   authenticate,
   authorizeRoles("ADMIN"),
@@ -110,6 +119,7 @@ router.use(
 
 router.use("/mobile/auth", mobileAuthRoutes);
 router.use("/mobile/categories", mobileCategoryRoutes);
+router.use("/mobile/subcategories", mobileSubCategoryRoutes);
 router.use("/mobile/products", mobileProductRoutes);
 
 // ─── Protected mobile routes ──────────────────────────────────────────────

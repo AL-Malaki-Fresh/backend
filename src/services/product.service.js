@@ -37,10 +37,20 @@ const productSelectForAdmin = {
   isActive: true,
   viewCount: true,
   categoryId: true,
+  subCategoryId: true,
   createdAt: true,
   updatedAt: true,
 
   category: {
+    select: {
+      id: true,
+      name: true,
+      nameAr: true,
+      slug: true,
+    },
+  },
+
+  subCategory: {
     select: {
       id: true,
       name: true,
@@ -71,8 +81,18 @@ const productSelectForMobile = {
   unitLabel: true,
   isFeatured: true,
   categoryId: true,
+  subCategoryId: true,
 
   category: {
+    select: {
+      id: true,
+      name: true,
+      nameAr: true,
+      slug: true,
+    },
+  },
+
+  subCategory: {
     select: {
       id: true,
       name: true,
@@ -331,6 +351,53 @@ const validateCategory = async (
   return category;
 };
 
+// A subCategory is optional, but when provided it must exist and must
+// belong to the product's own categoryId — otherwise a product could end up
+// filed under a subcategory of a different top-level category than the one
+// it's shown under, which would be confusing for both admin and mobile
+// filtering.
+const validateSubCategory = async (
+  subCategoryId,
+  categoryId
+) => {
+  if (!subCategoryId) {
+    return null;
+  }
+
+  const subCategory =
+    await prisma.subCategory.findUnique({
+      where: {
+        id: subCategoryId,
+      },
+
+      select: {
+        id: true,
+        categoryId: true,
+      },
+    });
+
+  if (!subCategory) {
+    throw createError(
+      "Subcategory not found",
+      404,
+      "SUB_CATEGORY_NOT_FOUND"
+    );
+  }
+
+  if (
+    categoryId &&
+    subCategory.categoryId !== categoryId
+  ) {
+    throw createError(
+      "Subcategory does not belong to the selected category",
+      400,
+      "SUB_CATEGORY_CATEGORY_MISMATCH"
+    );
+  }
+
+  return subCategory;
+};
+
 const findProductOrFail = async (id) => {
   const product =
     await prisma.product.findUnique({
@@ -340,6 +407,7 @@ const findProductOrFail = async (id) => {
 
       select: {
         id: true,
+        categoryId: true,
       },
     });
 
@@ -377,6 +445,7 @@ const createProduct = async ({
   isFeatured = false,
   isActive = true,
   categoryId,
+  subCategoryId,
 }) => {
   const normalizedName =
     normalizeString(name);
@@ -483,6 +552,7 @@ const createProduct = async ({
   );
 
   await validateCategory(categoryId);
+  await validateSubCategory(subCategoryId, categoryId);
 
   const slug =
     await createUniqueSlug(normalizedName);
@@ -535,6 +605,7 @@ const createProduct = async ({
       isFeatured: featuredValue,
       isActive: activeValue,
       categoryId,
+      subCategoryId: subCategoryId || null,
     },
 
     select: productSelectForAdmin,
@@ -546,6 +617,7 @@ const getAllProductsForAdmin = async ({
   limit = DEFAULT_ADMIN_LIMIT,
   search,
   categoryId,
+  subCategoryId,
   isActive,
   inStock,
   isFeatured,
@@ -598,6 +670,12 @@ const getAllProductsForAdmin = async ({
     ...(categoryId
       ? {
           categoryId,
+        }
+      : {}),
+
+    ...(subCategoryId
+      ? {
+          subCategoryId,
         }
       : {}),
 
@@ -749,9 +827,10 @@ const updateProduct = async (
     isFeatured,
     isActive,
     categoryId,
+    subCategoryId,
   }
 ) => {
-  await findProductOrFail(id);
+  const existingProduct = await findProductOrFail(id);
 
   const normalizedName =
     name !== undefined
@@ -869,6 +948,15 @@ const updateProduct = async (
 
   if (categoryId !== undefined) {
     await validateCategory(categoryId);
+  }
+
+  if (subCategoryId !== undefined) {
+    const effectiveCategoryId =
+      categoryId !== undefined
+        ? categoryId
+        : existingProduct.categoryId;
+
+    await validateSubCategory(subCategoryId, effectiveCategoryId);
   }
 
   const newSlug =
@@ -1055,6 +1143,12 @@ const updateProduct = async (
             categoryId,
           }
         : {}),
+
+      ...(subCategoryId !== undefined
+        ? {
+            subCategoryId: subCategoryId || null,
+          }
+        : {}),
     },
 
     select: productSelectForAdmin,
@@ -1155,6 +1249,7 @@ const getProductsForMobile = async ({
   limit = DEFAULT_MOBILE_LIMIT,
   search,
   categoryId,
+  subCategoryId,
   isFeatured,
 } = {}) => {
   const {
@@ -1187,6 +1282,12 @@ const getProductsForMobile = async ({
     ...(categoryId
       ? {
           categoryId,
+        }
+      : {}),
+
+    ...(subCategoryId
+      ? {
+          subCategoryId,
         }
       : {}),
 

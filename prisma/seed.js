@@ -160,17 +160,41 @@ async function main() {
       throw new Error('Some categories not found');
     }
 
+    // ─── 4b. Create Subcategories ───────────────────────────────────────────
+    // Subcategories are now their own table (linked to a top-level Category
+    // via categoryId), not a self-referencing Category row.
+    console.log('📁 Creating subcategories...');
+
+    await prisma.subCategory.createMany({
+      data: [
+        { categoryId: vegCategory.id, name: 'Root Vegetables', nameAr: 'خضروات جذرية', slug: 'root-vegetables', icon: '🥔', isActive: true, sortOrder: 1 },
+        { categoryId: vegCategory.id, name: 'Salad Vegetables', nameAr: 'خضروات السلطة', slug: 'salad-vegetables', icon: '🥒', isActive: true, sortOrder: 2 },
+        { categoryId: fruitsCategory.id, name: 'Citrus', nameAr: 'حمضيات', slug: 'citrus', icon: '🍊', isActive: true, sortOrder: 1 },
+      ],
+      skipDuplicates: true,
+    });
+
+    const subCategories = await prisma.subCategory.findMany({
+      where: { isActive: true },
+    });
+
+    const rootVegSubCategory = subCategories.find(sc => sc.slug === 'root-vegetables');
+    const saladVegSubCategory = subCategories.find(sc => sc.slug === 'salad-vegetables');
+    const citrusSubCategory = subCategories.find(sc => sc.slug === 'citrus');
+
+    console.log(`✅ ${subCategories.length} subcategories created`);
+
     // ─── 5. Create Products ────────────────────────────────────────────────
     console.log('📦 Creating products...');
 
     const productsData = [
       // Vegetables
-      { name: 'Tomatoes', nameAr: 'طماطم', slug: 'tomatoes', categoryId: vegCategory.id, price: 5.5, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 100, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1546470427-e26264be0b0d?w=400', isActive: true },
-      { name: 'Cucumber', nameAr: 'خيار', slug: 'cucumber', categoryId: vegCategory.id, price: 4.25, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 80, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?w=400', isActive: true },
-      { name: 'Potatoes', nameAr: 'بطاطس', slug: 'potatoes', categoryId: vegCategory.id, price: 3.75, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 120, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400', isActive: true },
-      { name: 'Onions', nameAr: 'بصل', slug: 'onions', categoryId: vegCategory.id, price: 3.25, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 90, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1508747703725-719777637510?w=400', isActive: true },
+      { name: 'Tomatoes', nameAr: 'طماطم', slug: 'tomatoes', categoryId: vegCategory.id, subCategoryId: saladVegSubCategory?.id, price: 5.5, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 100, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1546470427-e26264be0b0d?w=400', isActive: true },
+      { name: 'Cucumber', nameAr: 'خيار', slug: 'cucumber', categoryId: vegCategory.id, subCategoryId: saladVegSubCategory?.id, price: 4.25, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 80, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?w=400', isActive: true },
+      { name: 'Potatoes', nameAr: 'بطاطس', slug: 'potatoes', categoryId: vegCategory.id, subCategoryId: rootVegSubCategory?.id, price: 3.75, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 120, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400', isActive: true },
+      { name: 'Onions', nameAr: 'بصل', slug: 'onions', categoryId: vegCategory.id, subCategoryId: rootVegSubCategory?.id, price: 3.25, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 90, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1508747703725-719777637510?w=400', isActive: true },
       // Fruits
-      { name: 'Orange', nameAr: 'برتقال عصير', slug: 'orange', categoryId: fruitsCategory.id, price: 4.75, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 70, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1547514701-42782101795e?w=400', isActive: true },
+      { name: 'Orange', nameAr: 'برتقال عصير', slug: 'orange', categoryId: fruitsCategory.id, subCategoryId: citrusSubCategory?.id, price: 4.75, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 70, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1547514701-42782101795e?w=400', isActive: true },
       { name: 'Banana', nameAr: 'موز', slug: 'banana', categoryId: fruitsCategory.id, price: 4.5, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 60, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400', isActive: true },
       { name: 'Red Apple', nameAr: 'تفاح أحمر', slug: 'red-apple', categoryId: fruitsCategory.id, price: 6.5, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 50, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400', isActive: true },
       { name: 'White Grapes', nameAr: 'عنب أبيض', slug: 'white-grapes', categoryId: fruitsCategory.id, price: 8.75, unitLabel: '1 كيلو', isFresh: true, inStock: true, stockQuantity: 40, brand: 'الملكي', imageUrl: 'https://images.unsplash.com/photo-1599819177626-ca3b5d4e1a2e?w=400', isActive: true },
@@ -428,6 +452,7 @@ async function main() {
     console.log('📊 Summary:');
     console.log(`  👤 Users: 4 (1 Admin, 3 Customers)`);
     console.log(`  📂 Categories: 5`);
+    console.log(`  📁 Subcategories: ${subCategories.length}`);
     console.log(`  📦 Products: 12`);
     console.log(`  📍 Addresses: 3`);
     console.log(`  🛒 Cart: 1 (with 3 items)`);
