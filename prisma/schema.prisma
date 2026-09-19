@@ -49,6 +49,7 @@ model User {
   carts                 Cart[]
   orders                Order[]
   createdOrderHistories OrderStatusHistory[] @relation("OrderStatusCreatedBy")
+  couponUsages          CouponUsage[]
 
   @@map("users")
 }
@@ -335,8 +336,18 @@ model Order {
   // ✅ ADDED: Tap Payment ID
   paymentId String? @unique @map("payment_id") @db.VarChar(100)
 
-  subtotal       Decimal @db.Decimal(10, 2)
-  discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  // subtotal is the items total AFTER product promotions (order_items.unit_price
+  // already holds the promotional price). discountAmount is the coupon
+  // discount only, so: total = subtotal - discountAmount + tax + deliveryFee.
+  // promotionDiscount is informational — how much promotions already took off
+  // the subtotal (sum of (original - promo price) * qty).
+  subtotal          Decimal @db.Decimal(10, 2)
+  discountAmount    Decimal @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  promotionDiscount Decimal @default(0) @map("promotion_discount") @db.Decimal(10, 2)
+
+  couponId   String? @map("coupon_id") @db.Uuid
+  couponCode String? @map("coupon_code") @db.VarChar(50)
+
   taxAmount      Decimal @default(0) @map("tax_amount") @db.Decimal(10, 2)
   deliveryFee    Decimal @default(0) @map("delivery_fee") @db.Decimal(10, 2)
   totalAmount    Decimal @map("total_amount") @db.Decimal(10, 2)
@@ -360,7 +371,10 @@ model Order {
   user          User?                @relation(fields: [userId], references: [id], onDelete: Restrict)
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
+  coupon        Coupon?              @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponUsage   CouponUsage?
 
+  @@index([couponId])
   @@index([userId])
   @@index([status])
   @@index([paymentStatus])
@@ -377,8 +391,14 @@ model OrderItem {
   productName   String  @map("product_name") @db.VarChar(255)
   productNameAr String? @map("product_name_ar") @db.VarChar(255)
 
-  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
-  quantity  Int
+  // unitPrice is what the customer actually paid per unit (after any
+  // promotion). originalUnitPrice/promotionId/promotionPercent are snapshots
+  // taken at checkout and stay null for items with no promotion.
+  unitPrice         Decimal  @map("unit_price") @db.Decimal(10, 2)
+  originalUnitPrice Decimal? @map("original_unit_price") @db.Decimal(10, 2)
+  promotionId       String?  @map("promotion_id") @db.Uuid
+  promotionPercent  Decimal? @map("promotion_percent") @db.Decimal(5, 2)
+  quantity          Int
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
 
@@ -447,4 +467,112 @@ model DeliverySetting {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("delivery_settings")
+}
+
+// ─── Promotions & Coupons ───────────────────────────────────────────────────
+
+enum CouponDiscountType {
+  PERCENTAGE @map("percentage")
+  FIXED      @map("fixed")
+
+  @@map("coupon_discount_type")
+}
+
+// An automatic percentage discount on catalog prices, active between
+// startDate and endDate. It targets any mix of categories, subcategories
+// and individual products (a product is covered if it matches ANY of the
+// three lists). The ID lists are plain UUID arrays (validated in the service
+// layer) rather than join tables — a promotion is a small config object and
+// this keeps "select categories + subcategories + products" a single write.
+// If a product matches several active promotions, the highest percent wins.
+model Promotion {
+  id String @id @default(uuid()) @db.Uuid
+
+  name          String  @db.VarChar(150)
+  nameAr        String? @map("name_ar") @db.VarChar(150)
+  description   String? @db.Text
+  descriptionAr String? @map("description_ar") @db.Text
+
+  discountPercent Decimal @map("discount_percent") @db.Decimal(5, 2)
+
+  startDate DateTime @map("start_date") @db.Timestamp(6)
+  endDate   DateTime @map("end_date") @db.Timestamp(6)
+
+  isActive Boolean @default(true) @map("is_active")
+
+  categoryIds    String[] @default([]) @map("category_ids") @db.Uuid
+  subCategoryIds String[] @default([]) @map("sub_category_ids") @db.Uuid
+  productIds     String[] @default([]) @map("product_ids") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@index([isActive, startDate, endDate])
+  @@map("promotions")
+}
+
+// A code the customer types at checkout. Eligibility is checked against the
+// cart subtotal AFTER promotions: minOrderAmount / maxOrderAmount bound it,
+// and for PERCENTAGE coupons maxDiscountAmount caps the discount. If any of
+// categoryIds / subCategoryIds / productIds is non-empty the coupon only
+// discounts the matching cart lines, otherwise it discounts the whole cart.
+model Coupon {
+  id String @id @default(uuid()) @db.Uuid
+
+  code String @unique @db.VarChar(50)
+
+  description   String? @db.Text
+  descriptionAr String? @map("description_ar") @db.Text
+
+  discountType  CouponDiscountType @map("discount_type")
+  discountValue Decimal            @map("discount_value") @db.Decimal(10, 2)
+
+  maxDiscountAmount Decimal? @map("max_discount_amount") @db.Decimal(10, 2)
+  minOrderAmount    Decimal? @map("min_order_amount") @db.Decimal(10, 2)
+  maxOrderAmount    Decimal? @map("max_order_amount") @db.Decimal(10, 2)
+
+  startDate DateTime? @map("start_date") @db.Timestamp(6)
+  endDate   DateTime? @map("end_date") @db.Timestamp(6)
+
+  usageLimit        Int? @map("usage_limit")
+  usageLimitPerUser Int? @map("usage_limit_per_user")
+  usedCount         Int  @default(0) @map("used_count")
+
+  // When true, cart lines that already have a product promotion are left
+  // out of the coupon's discount (no stacking on top of promotions).
+  excludePromotedItems Boolean @default(false) @map("exclude_promoted_items")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  categoryIds    String[] @default([]) @map("category_ids") @db.Uuid
+  subCategoryIds String[] @default([]) @map("sub_category_ids") @db.Uuid
+  productIds     String[] @default([]) @map("product_ids") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  usages CouponUsage[]
+  orders Order[]
+
+  @@index([isActive])
+  @@map("coupons")
+}
+
+model CouponUsage {
+  id String @id @default(uuid()) @db.Uuid
+
+  couponId String @map("coupon_id") @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+  orderId  String @unique @map("order_id") @db.Uuid
+
+  discountAmount Decimal @map("discount_amount") @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([couponId, userId])
+  @@map("coupon_usages")
 }

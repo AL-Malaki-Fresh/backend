@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const pricingService = require("./pricing.service");
 
 const MAX_LIMIT = 100;
 const DEFAULT_ADMIN_LIMIT = 10;
@@ -1394,7 +1395,12 @@ const getProductsForMobile = async ({
     ]);
 
   return {
-    data: products,
+    // Each product gets `promotion` / `promotionPrice` (null when it isn't
+    // on promotion) so the app can show the sale price without extra calls.
+    data: await pricingService
+      .attachPromotionsToProducts(
+        products
+      ),
 
     pagination: {
       total,
@@ -1440,7 +1446,13 @@ const getProductByIdForMobile = async (
     },
   });
 
-  return product;
+  const [productWithPromotion] =
+    await pricingService
+      .attachPromotionsToProducts([
+        product,
+      ]);
+
+  return productWithPromotion;
 };
 
 module.exports = {

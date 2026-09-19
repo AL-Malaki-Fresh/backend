@@ -3,6 +3,7 @@
 const { Prisma } = require("@prisma/client");
 
 const prisma = require("../config/prisma");
+const pricingService = require("./pricing.service");
 
 const MAX_CART_QUANTITY = 99;
 
@@ -36,6 +37,8 @@ const cartItemSelect = {
       unitLabel: true,
       weight: true,
       weightUnit: true,
+      categoryId: true,
+      subCategoryId: true,
       category: {
         select: {
           id: true,
@@ -81,26 +84,55 @@ const normalizeQuantity = (quantity) => {
   return quantityValue;
 };
 
-const calculateCartSummary = (cart) => {
-  const subtotal = cart.items.reduce((sum, item) => {
-    return sum.plus(new Prisma.Decimal(item.unitPrice).mul(item.quantity));
-  }, new Prisma.Decimal(0));
+// Prices every cart line from the product's current price + any active
+// promotion, so the cart shows the same numbers checkout will charge.
+// unitPrice in the response is therefore the PROMOTIONAL price (what the
+// customer pays); originalUnitPrice/promotion are only set when a promotion
+// applies.
+const formatCartResponse = async (cart) => {
+  const promotions = await pricingService.getActivePromotions();
 
-  const totalQuantity = cart.items.reduce((sum, item) => {
-    return sum + item.quantity;
-  }, 0);
+  const pricedCart = pricingService.priceCartLines(
+    cart.items.map((item) => ({
+      // A deleted product leaves productId null: keep the price the
+      // customer saw when they added it.
+      product: item.product || {
+        id: null,
+        price: item.unitPrice,
+        categoryId: null,
+        subCategoryId: null,
+      },
+      quantity: item.quantity,
+    })),
+    promotions
+  );
 
-  return {
-    subtotal: subtotal.toDecimalPlaces(2).toString(),
-    totalQuantity,
-    itemsCount: cart.items.length,
-  };
-};
+  const items = cart.items.map((item, index) => {
+    const line = pricedCart.lines[index];
 
-const formatCartResponse = (cart) => {
+    return {
+      ...item,
+      unitPrice: line.unitPrice.toFixed(2),
+      originalUnitPrice: line.promotion
+        ? line.originalUnitPrice.toFixed(2)
+        : null,
+      promotion: pricingService.publicPromotion(line.promotion),
+      lineTotal: line.lineTotal.toFixed(2),
+    };
+  });
+
+  const totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+
   return {
     ...cart,
-    summary: calculateCartSummary(cart),
+    items,
+    summary: {
+      subtotal: pricedCart.subtotal.toFixed(2),
+      originalSubtotal: pricedCart.originalSubtotal.toFixed(2),
+      promotionDiscount: pricedCart.promotionDiscount.toFixed(2),
+      totalQuantity,
+      itemsCount: cart.items.length,
+    },
   };
 };
 
@@ -172,7 +204,7 @@ const getMyCart = async (userId) => {
     select: cartSelect,
   });
 
-  return formatCartResponse(fullCart);
+  return await formatCartResponse(fullCart);
 };
 
 const addOrMergeCartItem = async (tx, { cartId, product, quantityValue }) => {

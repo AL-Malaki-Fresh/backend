@@ -12,6 +12,9 @@ const notificationService = require(
 const deliverySettingService = require(
   "./delivery-setting.service"
 );
+const pricingService = require(
+  "./pricing.service"
+);
 
 const MAX_LIMIT = 100;
 const DEFAULT_ADMIN_LIMIT = 10;
@@ -40,6 +43,8 @@ const orderItemSelect = {
   productName: true,
   productNameAr: true,
   unitPrice: true,
+  originalUnitPrice: true,
+  promotionPercent: true,
   quantity: true,
   createdAt: true,
 
@@ -67,6 +72,8 @@ const orderSelectForMobile = {
 
   subtotal: true,
   discountAmount: true,
+  promotionDiscount: true,
+  couponCode: true,
   taxAmount: true,
   deliveryFee: true,
   totalAmount: true,
@@ -120,6 +127,8 @@ const orderSelectForAdmin = {
 
   subtotal: true,
   discountAmount: true,
+  promotionDiscount: true,
+  couponCode: true,
   taxAmount: true,
   deliveryFee: true,
   totalAmount: true,
@@ -567,6 +576,8 @@ const getActiveUserCart = async (
                 name: true,
                 nameAr: true,
                 price: true,
+                categoryId: true,
+                subCategoryId: true,
 
                 isActive: true,
                 inStock: true,
@@ -593,7 +604,8 @@ const getActiveUserCart = async (
 };
 
 const validateCartItemsForOrder = (
-  cartItems
+  cartItems,
+  promotions = []
 ) => {
   return cartItems.map(
     (item) => {
@@ -658,10 +670,17 @@ const validateCartItemsForOrder = (
         );
       }
 
-      const unitPrice =
-        new Prisma.Decimal(
-          item.unitPrice
+      // Price is recomputed from the product's CURRENT price and any active
+      // promotion — never trusted from the cart row's snapshot — so a
+      // promotion that started/ended since the item was added is honoured.
+      const pricing =
+        pricingService.priceProduct(
+          item.product,
+          promotions
         );
+
+      const unitPrice =
+        pricing.price;
 
       if (
         unitPrice.isNegative() ||
@@ -686,6 +705,24 @@ const validateCartItemsForOrder = (
 
         unitPrice,
 
+        originalUnitPrice:
+          pricing.promotion
+            ? pricing.originalPrice
+            : null,
+
+        promotionId:
+          pricing.promotion
+            ? pricing.promotion.id
+            : null,
+
+        promotionPercent:
+          pricing.promotion
+            ? new Prisma.Decimal(
+                pricing.promotion
+                  .discountPercent
+              )
+            : null,
+
         quantity:
           requestedQuantity,
       };
@@ -702,6 +739,7 @@ const createOrderFromCart = async (
     paymentMethod =
       PaymentMethod.CASH,
     notes,
+    couponCode,
     // NOTE: paymentId is intentionally NOT accepted from the client here —
     // it's server-set later via updateOrderPaymentId() once a real Tap
     // charge exists. Accepting it from req.body would let a client set an
@@ -728,27 +766,35 @@ const createOrderFromCart = async (
       userId
     );
 
+  const promotions =
+    await pricingService
+      .getActivePromotions();
+
   const orderItemsData =
     validateCartItemsForOrder(
-      cart.items
+      cart.items,
+      promotions
+    );
+
+  // Same pricing pass the cart screen and the coupon preview use, so the
+  // customer is charged exactly what they were shown.
+  const pricedCart =
+    pricingService.priceCartLines(
+      cart.items.map((item) => ({
+        product: item.product,
+        quantity: item.quantity,
+      })),
+      promotions
     );
 
   const subtotal =
-    orderItemsData.reduce(
-      (sum, item) =>
-        sum.plus(
-          new Prisma.Decimal(
-            item.unitPrice
-          ).mul(
-            item.quantity
-          )
-        ),
+    pricedCart.subtotal;
 
-      new Prisma.Decimal(0)
-    );
-
-  const discountAmount =
-    new Prisma.Decimal(0);
+  const normalizedCouponCode =
+    pricingService
+      .normalizeCouponCode(
+        couponCode
+      );
 
   const taxAmount =
     new Prisma.Decimal(0);
@@ -761,6 +807,33 @@ const createOrderFromCart = async (
       const deliveryFeeValue =
         await deliverySettingService
           .getDeliveryFee(tx);
+
+      let couponResult = null;
+
+      if (normalizedCouponCode) {
+        const coupon =
+          await pricingService
+            .findCouponByCode(
+              tx,
+              normalizedCouponCode
+            );
+
+        couponResult =
+          await pricingService
+            .evaluateCoupon(
+              tx,
+              coupon,
+              {
+                userId,
+                pricedCart,
+              }
+            );
+      }
+
+      const discountAmount =
+        couponResult
+          ? couponResult.discountAmount
+          : new Prisma.Decimal(0);
 
       const totalAmount =
         subtotal
@@ -853,6 +926,20 @@ const createOrderFromCart = async (
               ),
 
             discountAmount,
+
+            promotionDiscount:
+              pricedCart.promotionDiscount,
+
+            couponId:
+              couponResult
+                ? couponResult.coupon.id
+                : null,
+
+            couponCode:
+              couponResult
+                ? couponResult.coupon.code
+                : null,
+
             taxAmount,
 
             deliveryFee:
@@ -888,6 +975,18 @@ const createOrderFromCart = async (
           select:
             orderSelectForMobile,
         });
+
+      if (couponResult) {
+        await pricingService
+          .redeemCoupon(tx, {
+            coupon:
+              couponResult.coupon,
+            userId,
+            orderId:
+              createdOrder.id,
+            discountAmount,
+          });
+      }
 
       /*
        * Disable products whose stock reached zero.
@@ -1561,43 +1660,68 @@ const updateOrderStatus =
       );
     }
 
-    return prisma.order.update({
-      where: {
-        id:
-          orderId,
-      },
+    return prisma.$transaction(
+      async (tx) => {
+        const updatedOrder =
+          await tx.order.update({
+            where: {
+              id:
+                orderId,
+            },
 
-      data: {
-        status:
-          normalizedStatus,
+            data: {
+              status:
+                normalizedStatus,
 
-        ...(normalizedStatus ===
-        OrderStatus.DELIVERED
-          ? {
-              actualDeliveryTime:
-                new Date(),
-            }
-          : {}),
+              ...(normalizedStatus ===
+              OrderStatus.DELIVERED
+                ? {
+                    actualDeliveryTime:
+                      new Date(),
+                  }
+                : {}),
 
-        statusHistory: {
-          create: {
-            status:
-              normalizedStatus,
+              statusHistory: {
+                create: {
+                  status:
+                    normalizedStatus,
 
-            notes:
-              normalizeString(
-                notes
-              ),
+                  notes:
+                    normalizeString(
+                      notes
+                    ),
 
-            createdBy:
-              actor.id,
-          },
-        },
-      },
+                  createdBy:
+                    actor.id,
+                },
+              },
+            },
 
-      select:
-        orderSelectForAdmin,
-    });
+            select:
+              orderSelectForAdmin,
+          });
+
+        /*
+         * A cancelled order gives its coupon use back, so a customer
+         * isn't locked out of a per-user-limited coupon by an order
+         * that never happened.
+         */
+        if (
+          normalizedStatus ===
+            OrderStatus.CANCELLED &&
+          existingOrder.status !==
+            OrderStatus.CANCELLED
+        ) {
+          await pricingService
+            .releaseCouponForOrder(
+              tx,
+              orderId
+            );
+        }
+
+        return updatedOrder;
+      }
+    );
   };
 
 // ─── Manual Payment Status Update: CASH ONLY ────────────────────────────────

@@ -11,6 +11,8 @@ const adminCategoryRoutes = require("./admin/category.routes");
 const adminSubCategoryRoutes = require("./admin/subCategory.routes");
 const adminProductRoutes = require("./admin/product.routes");
 const adminOrderRoutes = require("./admin/order.routes");
+const adminPromotionRoutes = require("./admin/promotion.routes");
+const adminCouponRoutes = require("./admin/coupon.routes");
 
 // ✅ ADD THIS IMPORT
 const adminDashboardRoutes = require("./admin/dashboard.routes");
@@ -26,6 +28,7 @@ const mobileSubCategoryRoutes = require("./mobile/subCategory.routes");
 const mobileProductRoutes = require("./mobile/product.routes");
 const mobileOrderRoutes = require("./mobile/order.routes");
 const mobileCartRoutes = require("./mobile/cart.routes");
+const mobileCouponRoutes = require("./mobile/coupon.routes");
 
 // Payment routes
 const mobilePaymentRoutes = require("./mobile/payment.routes");
@@ -86,6 +89,20 @@ router.use(
 );
 
 router.use(
+  "/admin/promotions",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminPromotionRoutes
+);
+
+router.use(
+  "/admin/coupons",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminCouponRoutes
+);
+
+router.use(
   "/admin/orders",
   authenticate,
   authorizeRoles("ADMIN"),
@@ -141,6 +158,13 @@ router.use(
   authenticate,
   authorizeRoles("CUSTOMER", "ADMIN"),
   mobileOrderRoutes
+);
+
+router.use(
+  "/mobile/coupons",
+  authenticate,
+  authorizeRoles("CUSTOMER", "ADMIN"),
+  mobileCouponRoutes
 );
 
 router.use(
