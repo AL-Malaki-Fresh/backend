@@ -342,6 +342,41 @@ const refreshAccessToken = async (refreshToken) => {
   };
 };
 
+// Store-wide user counters for the admin list header cards (not affected by
+// the list's search/role filter/page).
+const getUserStatistics = async () => {
+  const [
+    total,
+    customers,
+    admins,
+    delivery,
+    active,
+    inactive,
+    verified,
+    notVerified,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.user.count({ where: { role: "CUSTOMER" } }),
+    prisma.user.count({ where: { role: "ADMIN" } }),
+    prisma.user.count({ where: { role: "DELIVERY" } }),
+    prisma.user.count({ where: { isActive: true } }),
+    prisma.user.count({ where: { isActive: false } }),
+    prisma.user.count({ where: { isVerified: true } }),
+    prisma.user.count({ where: { isVerified: false } }),
+  ]);
+
+  return {
+    total,
+    customers,
+    admins,
+    delivery,
+    active,
+    inactive,
+    verified,
+    notVerified,
+  };
+};
+
 const getAllUsers = async ({
   page = 1,
   limit = 10,
@@ -393,7 +428,7 @@ const getAllUsers = async ({
       : {}),
   };
 
-  const [users, total] = await Promise.all([
+  const [users, total, statistics] = await Promise.all([
     prisma.user.findMany({
       where,
       orderBy: {
@@ -406,10 +441,12 @@ const getAllUsers = async ({
     prisma.user.count({
       where,
     }),
+    getUserStatistics(),
   ]);
 
   return {
     data: users,
+    statistics,
     pagination: {
       total,
       page: pageNumber,
