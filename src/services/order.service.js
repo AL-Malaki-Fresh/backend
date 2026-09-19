@@ -1291,6 +1291,46 @@ const getMyOrderById = async (
 
 // ─── Admin Order Queries ────────────────────────────────────────────────────
 
+// Store-wide order counters for the admin list header cards (not affected
+// by the list's search/filters/page). Every OrderStatus / PaymentStatus is
+// always present in the result (0 when there are none), keyed in lower camel
+// case, plus the revenue of paid orders.
+const getOrderStatistics = async () => {
+  const [byStatus, byPayment, paidRevenue] = await Promise.all([
+    prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.order.groupBy({ by: ["paymentStatus"], _count: { _all: true } }),
+    prisma.order.aggregate({
+      where: { paymentStatus: "PAID" },
+      _sum: { totalAmount: true },
+    }),
+  ]);
+
+  const statusCount = (value) =>
+    byStatus.find((row) => row.status === value)?._count._all || 0;
+
+  const paymentCount = (value) =>
+    byPayment.find((row) => row.paymentStatus === value)?._count._all || 0;
+
+  return {
+    total: byStatus.reduce((sum, row) => sum + row._count._all, 0),
+
+    pending: statusCount("PENDING"),
+    confirmed: statusCount("CONFIRMED"),
+    preparing: statusCount("PREPARING"),
+    ready: statusCount("READY"),
+    delivering: statusCount("DELIVERING"),
+    delivered: statusCount("DELIVERED"),
+    cancelled: statusCount("CANCELLED"),
+
+    paymentPending: paymentCount("PENDING"),
+    paid: paymentCount("PAID"),
+    paymentFailed: paymentCount("FAILED"),
+    refunded: paymentCount("REFUNDED"),
+
+    paidRevenue: Number(paidRevenue._sum.totalAmount || 0),
+  };
+};
+
 const getAllOrdersForAdmin =
   async ({
     page = 1,
@@ -1381,7 +1421,7 @@ const getAllOrdersForAdmin =
         : {}),
     };
 
-    const [orders, total] =
+    const [orders, total, statistics] =
       await Promise.all([
         prisma.order.findMany({
           where,
@@ -1401,10 +1441,13 @@ const getAllOrdersForAdmin =
         prisma.order.count({
           where,
         }),
+
+        getOrderStatistics(),
       ]);
 
     return {
       data: orders,
+      statistics,
 
       pagination: {
         total,

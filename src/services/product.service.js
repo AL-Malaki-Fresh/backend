@@ -612,6 +612,42 @@ const createProduct = async ({
   });
 };
 
+// Store-wide product counters for the admin list header cards. They are
+// deliberately NOT affected by the list's search/filters/page, so the cards
+// always describe the whole catalog.
+//   lowStock   = in stock, quantity > 0 and quantity <= lowStockThreshold
+//   outOfStock = flagged not in stock OR quantity <= 0
+// (the two are mutually exclusive). lowStock compares two columns, which
+// Prisma's count() can't express, so it uses a small raw query.
+const getProductStatistics = async () => {
+  const [total, active, inactive, outOfStock, lowStockRows] =
+    await Promise.all([
+      prisma.product.count(),
+      prisma.product.count({ where: { isActive: true } }),
+      prisma.product.count({ where: { isActive: false } }),
+      prisma.product.count({
+        where: {
+          OR: [{ inStock: false }, { stockQuantity: { lte: 0 } }],
+        },
+      }),
+      prisma.$queryRaw`
+        SELECT COUNT(*)::int AS count
+        FROM products
+        WHERE in_stock = true
+          AND stock_quantity > 0
+          AND stock_quantity <= low_stock_threshold
+      `,
+    ]);
+
+  return {
+    total,
+    active,
+    inactive,
+    lowStock: Number(lowStockRows?.[0]?.count || 0),
+    outOfStock,
+  };
+};
+
 const getAllProductsForAdmin = async ({
   page = 1,
   limit = DEFAULT_ADMIN_LIMIT,
@@ -741,7 +777,7 @@ const getAllProductsForAdmin = async ({
       : {}),
   };
 
-  const [products, total] =
+  const [products, total, statistics] =
     await Promise.all([
       prisma.product.findMany({
         where,
@@ -763,10 +799,13 @@ const getAllProductsForAdmin = async ({
       prisma.product.count({
         where,
       }),
+
+      getProductStatistics(),
     ]);
 
   return {
     data: products,
+    statistics,
 
     pagination: {
       total,

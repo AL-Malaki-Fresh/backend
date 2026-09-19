@@ -21,6 +21,7 @@ const getAllProducts = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: result.data,
+      statistics: result.statistics,
       pagination: result.pagination,
     });
   } catch (error) {

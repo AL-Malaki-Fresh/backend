@@ -182,6 +182,19 @@ const createSubCategory = async ({
   });
 };
 
+// Store-wide subcategory counters for the admin list header cards (not
+// affected by the list's search/filters/page).
+const getSubCategoryStatistics = async () => {
+  const [total, active, inactive, totalProducts] = await Promise.all([
+    prisma.subCategory.count(),
+    prisma.subCategory.count({ where: { isActive: true } }),
+    prisma.subCategory.count({ where: { isActive: false } }),
+    prisma.product.count({ where: { subCategoryId: { not: null } } }),
+  ]);
+
+  return { total, active, inactive, totalProducts };
+};
+
 const getAllSubCategoriesForAdmin = async ({
   page = 1,
   limit = 10,
@@ -230,7 +243,7 @@ const getAllSubCategoriesForAdmin = async ({
       : {}),
   };
 
-  const [subCategories, total] = await Promise.all([
+  const [subCategories, total, statistics] = await Promise.all([
     prisma.subCategory.findMany({
       where,
       skip,
@@ -239,10 +252,12 @@ const getAllSubCategoriesForAdmin = async ({
       select: subCategorySelect,
     }),
     prisma.subCategory.count({ where }),
+    getSubCategoryStatistics(),
   ]);
 
   return {
     data: subCategories,
+    statistics,
     pagination: {
       total,
       page: pageNumber,
