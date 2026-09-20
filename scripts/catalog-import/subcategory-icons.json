@@ -1,0 +1,342 @@
+[
+  {
+    "slug": "bakery-bakery",
+    "name": "Bakery",
+    "icon": "🥖"
+  },
+  {
+    "slug": "chilled-diary-beverage-drinks",
+    "name": "Beverage & Drinks",
+    "icon": "🥤"
+  },
+  {
+    "slug": "chilled-diary-dairy",
+    "name": "Dairy",
+    "icon": "🥛"
+  },
+  {
+    "slug": "confectionery-sweet-category",
+    "name": "Sweet Category",
+    "icon": "🍫"
+  },
+  {
+    "slug": "delicatessen-delicatessen",
+    "name": "Delicatessen",
+    "icon": "🥓"
+  },
+  {
+    "slug": "electronics-diy-car-accessories",
+    "name": "DIY / Car Accessories",
+    "icon": "🔧"
+  },
+  {
+    "slug": "electronics-health-wellness-devices",
+    "name": "Health & Wellness Devices",
+    "icon": "🩺"
+  },
+  {
+    "slug": "electronics-lighting-devices",
+    "name": "Lighting Devices",
+    "icon": "💡"
+  },
+  {
+    "slug": "fish-fishery",
+    "name": "Fishery",
+    "icon": "🐟"
+  },
+  {
+    "slug": "fresh-poultry-fresh-poultry",
+    "name": "Fresh Poultry",
+    "icon": "🍗"
+  },
+  {
+    "slug": "frozen-dairy",
+    "name": "Dairy",
+    "icon": "🧊"
+  },
+  {
+    "slug": "frozen-frozen-poultry",
+    "name": "FROZEN POULTRY",
+    "icon": "🐔"
+  },
+  {
+    "slug": "frozen-ready-meals",
+    "name": "Ready Meals",
+    "icon": "🍱"
+  },
+  {
+    "slug": "grocery-foods-pet-food",
+    "name": "Pet Food",
+    "icon": "🐶"
+  },
+  {
+    "slug": "grocery-foods-roastry",
+    "name": "Roastry",
+    "icon": "🥜"
+  },
+  {
+    "slug": "grocery-foods-salt-category",
+    "name": "Salt Category",
+    "icon": "🥫"
+  },
+  {
+    "slug": "grocery-foods-sweet-category",
+    "name": "Sweet Category",
+    "icon": "🍯"
+  },
+  {
+    "slug": "grocery-foods-beverage-drinks",
+    "name": "BEVERAGE & DRINKS",
+    "icon": "🧃"
+  },
+  {
+    "slug": "lpg-houseware",
+    "name": "Houseware",
+    "icon": "🏠"
+  },
+  {
+    "slug": "meat-butchery-butchery",
+    "name": "Butchery",
+    "icon": "🥩"
+  },
+  {
+    "slug": "roastery-dates",
+    "name": "Dates",
+    "icon": "🌴"
+  },
+  {
+    "slug": "roastery-roastry",
+    "name": "Roastry",
+    "icon": "☕"
+  },
+  {
+    "slug": "roastery-nuts",
+    "name": "Nuts",
+    "icon": "🌰"
+  },
+  {
+    "slug": "roastery-malaki-product",
+    "name": "Malaki Product",
+    "icon": "⭐"
+  },
+  {
+    "slug": "veg-fruits-fruits-veg",
+    "name": "Fruits & Veg",
+    "icon": "🍎"
+  },
+  {
+    "slug": "hot-food-hot-drink",
+    "name": "Hot Drink",
+    "icon": "☕"
+  },
+  {
+    "slug": "grocery-non-food-detergent-hygiene",
+    "name": "Detergent & Hygiene",
+    "icon": "🧼"
+  },
+  {
+    "slug": "grocery-non-food-health-beauty",
+    "name": "Health & Beauty",
+    "icon": "💄"
+  },
+  {
+    "slug": "grocery-non-food-paper-hygiene",
+    "name": "Paper Hygiene",
+    "icon": "🧻"
+  },
+  {
+    "slug": "grocery-non-food-disposable",
+    "name": "Disposable",
+    "icon": "🥡"
+  },
+  {
+    "slug": "grocery-non-food-fuel-fire-starters",
+    "name": "Fuel & Fire Starters",
+    "icon": "🔥"
+  },
+  {
+    "slug": "grocery-non-food-pet-care",
+    "name": "Pet Care",
+    "icon": "🐾"
+  },
+  {
+    "slug": "hardware-electrical-extension-sockets-adaptor",
+    "name": "Extension/Sockets/Adaptor",
+    "icon": "🔌"
+  },
+  {
+    "slug": "hardware-electrical-safety-security",
+    "name": "Safety security",
+    "icon": "🔒"
+  },
+  {
+    "slug": "hardware-electrical-mobile-accessories",
+    "name": "Mobile Accessories",
+    "icon": "📱"
+  },
+  {
+    "slug": "hardware-electrical-diy-car-accessories",
+    "name": "Diy / Car Accessories",
+    "icon": "🚗"
+  },
+  {
+    "slug": "hardware-electrical-camping-gardening",
+    "name": "Camping / Gardening",
+    "icon": "⛺"
+  },
+  {
+    "slug": "hardware-electrical-tool-box",
+    "name": "Tool Box",
+    "icon": "🧰"
+  },
+  {
+    "slug": "hardware-electrical-cuting-plie",
+    "name": "Cuting Plie",
+    "icon": "✂️"
+  },
+  {
+    "slug": "health-beauty-detergent-hygiene",
+    "name": "Detergent & Hygiene",
+    "icon": "🧴"
+  },
+  {
+    "slug": "health-beauty-health-beauty",
+    "name": "Health & Beauty",
+    "icon": "💅"
+  },
+  {
+    "slug": "home-appliances-home-appliances",
+    "name": "Home Appliances",
+    "icon": "🔌"
+  },
+  {
+    "slug": "home-furnishing-house-equpment",
+    "name": "House Equpment",
+    "icon": "🛋️"
+  },
+  {
+    "slug": "home-furnishing-equipment",
+    "name": "Equipment",
+    "icon": "🛏️"
+  },
+  {
+    "slug": "house-hold-bakeware",
+    "name": "BAKEWARE",
+    "icon": "🧁"
+  },
+  {
+    "slug": "house-hold-cleaning",
+    "name": "CLEANING",
+    "icon": "🧹"
+  },
+  {
+    "slug": "house-hold-cookware-utensils",
+    "name": "COOKWARE / UTENSILS",
+    "icon": "🍳"
+  },
+  {
+    "slug": "house-hold-glass-ware",
+    "name": "GLASS WARE",
+    "icon": "🥂"
+  },
+  {
+    "slug": "house-hold-houseware",
+    "name": "HOUSEWARE",
+    "icon": "🏡"
+  },
+  {
+    "slug": "house-hold-kitchen-gadgets-kitchen-essent",
+    "name": "KITCHEN GADGETS/Kitchen Essent",
+    "icon": "🍴"
+  },
+  {
+    "slug": "house-hold-plasticware",
+    "name": "PLASTICWARE",
+    "icon": "🥣"
+  },
+  {
+    "slug": "house-hold-tableware",
+    "name": "TABLEWARE",
+    "icon": "🍽️"
+  },
+  {
+    "slug": "house-hold-trash-containers",
+    "name": "TRASH CONTAINERS",
+    "icon": "🗑️"
+  },
+  {
+    "slug": "house-hold-bbq",
+    "name": "BBQ",
+    "icon": "🍖"
+  },
+  {
+    "slug": "house-hold-storage-items",
+    "name": "STORAGE ITEMS",
+    "icon": "📦"
+  },
+  {
+    "slug": "house-hold-bathroom-accessories",
+    "name": "Bathroom Accessories",
+    "icon": "🛁"
+  },
+  {
+    "slug": "house-hold-furniture-camping-equipment",
+    "name": "Furniture/Camping Equipment",
+    "icon": "🪑"
+  },
+  {
+    "slug": "house-hold-laundry-supplies",
+    "name": "Laundry Supplies",
+    "icon": "🧺"
+  },
+  {
+    "slug": "house-hold-travel-accessories",
+    "name": "Travel Accessories",
+    "icon": "🧳"
+  },
+  {
+    "slug": "stationaries-office-automation",
+    "name": "Office Automation",
+    "icon": "🖨️"
+  },
+  {
+    "slug": "stationaries-stationery-books-party-ite",
+    "name": "STATIONERY / BOOKS / PARTY ITE",
+    "icon": "✏️"
+  },
+  {
+    "slug": "calling-card-ooredoo",
+    "name": "OOREDOO",
+    "icon": "📞"
+  },
+  {
+    "slug": "watches-clocks-photo-watches-wearables",
+    "name": "PHOTO / WATCHES / WEARABLES",
+    "icon": "⌚"
+  },
+  {
+    "slug": "novelty-party-accessories",
+    "name": "Party Accessories",
+    "icon": "🎉"
+  },
+  {
+    "slug": "novelty-fashion-accessories",
+    "name": "Fashion Accessories",
+    "icon": "👜"
+  },
+  {
+    "slug": "toys-sports-sports-equipment",
+    "name": "Sports Equipment",
+    "icon": "⚽"
+  },
+  {
+    "slug": "toys-sports-ride-ons-bicycles-bykes",
+    "name": "Ride-ons & Bicycles / Bykes",
+    "icon": "🚲"
+  },
+  {
+    "slug": "uncategorized-uncategorized",
+    "name": "Uncategorized",
+    "icon": "❓"
+  }
+]

@@ -15,4 +15,11 @@ router.get(
   dashboardController.getDashboardStats
 );
 
+router.get(
+  "/daily-report",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  dashboardController.getDailyReport
+);
+
 module.exports = router;

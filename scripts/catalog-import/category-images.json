@@ -1,0 +1,161 @@
+{
+  "license": "Pexels License (free to use, no attribution required)",
+  "categories": [
+    {
+      "slug": "bakery",
+      "name": "Bakery",
+      "pexelsPage": "https://www.pexels.com/photo/breads-in-a-bakery-3341067/",
+      "imageUrl": "https://images.pexels.com/photos/3341067/pexels-photo-3341067.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "chilled-diary",
+      "name": "Chilled & Diary",
+      "pexelsPage": "https://www.pexels.com/photo/dairy-section-in-a-grocery-store-20489330/",
+      "imageUrl": "https://images.pexels.com/photos/20489330/pexels-photo-20489330.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "confectionery",
+      "name": "Confectionery",
+      "pexelsPage": "https://www.pexels.com/photo/close-up-photo-of-assorted-chocolates-4110101/",
+      "imageUrl": "https://images.pexels.com/photos/4110101/pexels-photo-4110101.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "delicatessen",
+      "name": "Delicatessen",
+      "pexelsPage": "https://www.pexels.com/photo/meat-cold-cuts-station-in-buffet-4639391/",
+      "imageUrl": "https://images.pexels.com/photos/4639391/pexels-photo-4639391.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "electronics",
+      "name": "Electronics",
+      "pexelsPage": "https://www.pexels.com/photo/laptop-office-internet-connection-4697503/",
+      "imageUrl": "https://images.pexels.com/photos/4697503/pexels-photo-4697503.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "fish",
+      "name": "Fish",
+      "pexelsPage": "https://www.pexels.com/photo/branzino-fish-on-ice-14062105/",
+      "imageUrl": "https://images.pexels.com/photos/14062105/pexels-photo-14062105.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "fresh-poultry",
+      "name": "Fresh Poultry",
+      "pexelsPage": "https://www.pexels.com/photo/raw-meat-on-display-in-supermarket-8251004/",
+      "imageUrl": "https://images.pexels.com/photos/8251004/pexels-photo-8251004.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "frozen",
+      "name": "Frozen",
+      "pexelsPage": "https://www.pexels.com/photo/food-frozen-vegetables-85972/",
+      "imageUrl": "https://images.pexels.com/photos/85972/pexels-photo-85972.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "grocery-foods",
+      "name": "Grocery Foods",
+      "pexelsPage": "https://www.pexels.com/photo/shelves-in-grocery-store-16211537/",
+      "imageUrl": "https://images.pexels.com/photos/16211537/pexels-photo-16211537.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "lpg",
+      "name": "Lpg",
+      "pexelsPage": "https://www.pexels.com/photo/pexels-photo-16271901/",
+      "imageUrl": "https://images.pexels.com/photos/16271901/pexels-photo-16271901.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "meat-butchery",
+      "name": "Meat & Butchery",
+      "pexelsPage": "https://www.pexels.com/photo/raw-meat-on-display-counter-12884549/",
+      "imageUrl": "https://images.pexels.com/photos/12884549/pexels-photo-12884549.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "roastery",
+      "name": "Roastery",
+      "pexelsPage": "https://www.pexels.com/photo/coffee-beans-in-a-container-in-a-roastery-11729510/",
+      "imageUrl": "https://images.pexels.com/photos/11729510/pexels-photo-11729510.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "veg-fruits",
+      "name": "Veg & Fruits",
+      "pexelsPage": "https://www.pexels.com/photo/variety-of-fruits-and-vegetables-264537/",
+      "imageUrl": "https://images.pexels.com/photos/264537/pexels-photo-264537.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "hot-food",
+      "name": "Hot Food",
+      "pexelsPage": "https://www.pexels.com/photo/close-up-of-shawarma-18177335/",
+      "imageUrl": "https://images.pexels.com/photos/18177335/pexels-photo-18177335.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "grocery-non-food",
+      "name": "Grocery Non Food",
+      "pexelsPage": "https://www.pexels.com/photo/plastic-bottles-and-cleaning-supplies-for-washing-5218014/",
+      "imageUrl": "https://images.pexels.com/photos/5218014/pexels-photo-5218014.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "hardware-electrical",
+      "name": "Hardware & Electrical",
+      "pexelsPage": "https://www.pexels.com/photo/electrical-devices-and-a-pliers-6349399/",
+      "imageUrl": "https://images.pexels.com/photos/6349399/pexels-photo-6349399.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "health-beauty",
+      "name": "Health & Beauty",
+      "pexelsPage": "https://www.pexels.com/photo/flat-lay-photography-of-beauty-products-3993398/",
+      "imageUrl": "https://images.pexels.com/photos/3993398/pexels-photo-3993398.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "home-appliances",
+      "name": "Home Appliances",
+      "pexelsPage": "https://www.pexels.com/photo/close-up-photo-of-a-blender-6824660/",
+      "imageUrl": "https://images.pexels.com/photos/6824660/pexels-photo-6824660.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "home-furnishing",
+      "name": "Home furnishing",
+      "pexelsPage": "https://www.pexels.com/photo/pillows-and-blanket-on-the-bed-5629134/",
+      "imageUrl": "https://images.pexels.com/photos/5629134/pexels-photo-5629134.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "house-hold",
+      "name": "House Hold",
+      "pexelsPage": "https://www.pexels.com/photo/kitchen-cooking-utensils-photo-12292644/",
+      "imageUrl": "https://images.pexels.com/photos/12292644/pexels-photo-12292644.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "stationaries",
+      "name": "Stationaries",
+      "pexelsPage": "https://www.pexels.com/photo/pen-and-notebook-1119792/",
+      "imageUrl": "https://images.pexels.com/photos/1119792/pexels-photo-1119792.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "calling-card",
+      "name": "Calling card",
+      "pexelsPage": "https://www.pexels.com/photo/minimalist-blue-sim-card-with-bold-colors-33092906/",
+      "imageUrl": "https://images.pexels.com/photos/33092906/pexels-photo-33092906.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "watches-clocks",
+      "name": "Watches & Clocks",
+      "pexelsPage": "https://www.pexels.com/photo/close-up-photography-of-wristwatch-1034065/",
+      "imageUrl": "https://images.pexels.com/photos/1034065/pexels-photo-1034065.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "novelty",
+      "name": "Novelty",
+      "pexelsPage": "https://www.pexels.com/photo/gift-box-decorated-with-ribbon-bow-for-present-4397903/",
+      "imageUrl": "https://images.pexels.com/photos/4397903/pexels-photo-4397903.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "toys-sports",
+      "name": "Toys & Sports",
+      "pexelsPage": "https://www.pexels.com/photo/baby-playing-with-balls-3944891/",
+      "imageUrl": "https://images.pexels.com/photos/3944891/pexels-photo-3944891.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "slug": "uncategorized",
+      "name": "Uncategorized",
+      "pexelsPage": "https://www.pexels.com/photo/grocery-store-264636/",
+      "imageUrl": "https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg?auto=compress&cs=tinysrgb&w=800"
+    }
+  ]
+}
